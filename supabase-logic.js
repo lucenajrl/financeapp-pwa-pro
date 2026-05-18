@@ -160,16 +160,14 @@ S.s = function(key, val) {
 // Painel ADM (Apenas para o dono)
 function checkAdmin() {
     const adminEmail = 'jardsonlucena97@gmail.com'; // Seu e-mail
+    const adminBtn = document.getElementById('adminBtn');
     if (_currentUser && _currentUser.email === adminEmail) {
-        const sidebar = document.querySelector('.sb-nav');
-        if (sidebar && !document.getElementById('adminBtn')) {
-            const btn = document.createElement('div');
-            btn.id = 'adminBtn';
-            btn.className = 'sb-it';
-            btn.innerHTML = `<span class="lci"><i data-lucide="shield-check"></i></span> Painel ADM`;
-            btn.onclick = () => go('admin');
-            sidebar.appendChild(btn);
-            lucide.createIcons();
+        if (adminBtn) {
+            adminBtn.style.display = 'flex';
+        }
+    } else {
+        if (adminBtn) {
+            adminBtn.style.display = 'none';
         }
     }
 }
