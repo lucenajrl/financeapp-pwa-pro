@@ -40,6 +40,8 @@ function showApp() {
     document.getElementById('authScreen').classList.add('hide');
     CF.nome = _currentUser.user_metadata.nome || _currentUser.email;
     updUser();
+    checkAdmin();
+    initTrialTimer();
     go('dashboard');
     toast('Bem-vindo de volta! 👋');
 }
@@ -140,6 +142,23 @@ async function loadUserData() {
         // Atualizar UI
         updUser();
         if (typeof renderAll === 'function') renderAll();
+    } else {
+        // Novo usuario - resetar tudo
+        V = [];
+        M = [];
+        C = [];
+        P = [];
+        CF = {};
+        
+        // Criar registro inicial
+        await _supabase.from('user_data').insert({
+            user_id: _currentUser.id,
+            vendas: [],
+            movimentacoes: [],
+            clientes: [],
+            produtos: [],
+            config: {}
+        });
     }
 }
 
@@ -178,3 +197,154 @@ window.addEventListener('load', () => {
         checkAdmin();
     });
 });
+
+
+// ═══ SISTEMA DE DEGUSTAÇÃO (30 MINUTOS) ═══
+let _trialStartTime = null;
+const TRIAL_DURATION_MS = 30 * 60 * 1000; // 30 minutos em milissegundos
+const ADMIN_EMAIL = 'jardsonlucena97@gmail.com';
+
+function initTrialTimer() {
+    if (_currentUser && _currentUser.email === ADMIN_EMAIL) {
+        // Admin tem acesso ilimitado
+        return;
+    }
+    
+    // Carregar tempo de início da sessão do localStorage
+    const storageKey = `trial_start_${_currentUser.id}`;
+    const savedStartTime = localStorage.getItem(storageKey);
+    
+    if (savedStartTime) {
+        _trialStartTime = parseInt(savedStartTime);
+    } else {
+        _trialStartTime = Date.now();
+        localStorage.setItem(storageKey, _trialStartTime.toString());
+    }
+    
+    // Iniciar verificação a cada 5 segundos
+    setInterval(checkTrialExpiration, 5000);
+}
+
+function checkTrialExpiration() {
+    if (!_currentUser || _currentUser.email === ADMIN_EMAIL) return;
+    
+    const elapsedTime = Date.now() - _trialStartTime;
+    const remainingTime = TRIAL_DURATION_MS - elapsedTime;
+    
+    if (remainingTime <= 0) {
+        showPaymentScreen();
+    }
+}
+
+function showPaymentScreen() {
+    // Ocultar app principal
+    document.querySelector('.main').style.display = 'none';
+    
+    // Criar tela de pagamento
+    const paymentScreen = document.createElement('div');
+    paymentScreen.id = 'paymentScreen';
+    paymentScreen.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(59,130,246,.15), rgba(139,92,246,.1));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 20px;
+        font-family: 'Inter', sans-serif;
+    `;
+    
+    paymentScreen.innerHTML = `
+        <div style="
+            background: #0D1526;
+            border: 1px solid rgba(59,130,246,.3);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 24px 80px rgba(0,0,0,.6);
+        ">
+            <div style="font-size: 48px; margin-bottom: 20px;">⏱️</div>
+            <h2 style="
+                font-family: 'Syne', sans-serif;
+                font-size: 28px;
+                font-weight: 800;
+                color: #F1F5F9;
+                margin-bottom: 12px;
+            ">Período de Degustação Expirado</h2>
+            <p style="
+                color: #94A3B8;
+                font-size: 14px;
+                margin-bottom: 28px;
+                line-height: 1.6;
+            ">
+                Você utilizou 30 minutos de acesso gratuito. Para continuar usando o FinanceApp Pro, escolha um plano de assinatura.
+            </p>
+            
+            <div style="
+                background: #111D35;
+                border: 1px solid rgba(59,130,246,.2);
+                border-radius: 14px;
+                padding: 20px;
+                margin-bottom: 24px;
+                text-align: left;
+            ">
+                <div style="font-size: 12px; color: #64748B; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Dados para Pagamento</div>
+                <div style="margin-bottom: 10px;">
+                    <div style="font-size: 11px; color: #94A3B8; margin-bottom: 4px;">CNPJ</div>
+                    <div style="font-size: 14px; color: #F1F5F9; font-weight: 600;">12.345.678/0001-90</div>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <div style="font-size: 11px; color: #94A3B8; margin-bottom: 4px;">BANCO</div>
+                    <div style="font-size: 14px; color: #F1F5F9; font-weight: 600;">Banco do Brasil</div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #94A3B8; margin-bottom: 4px;">TITULAR</div>
+                    <div style="font-size: 14px; color: #F1F5F9; font-weight: 600;">Jardson Lucena</div>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <button onclick="window.location.href='https://wa.me/5585987654321'" style="
+                    padding: 12px;
+                    border-radius: 10px;
+                    border: none;
+                    background: rgba(37,211,102,.15);
+                    color: #25D366;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all .2s;
+                    font-size: 13px;
+                ">💬 WhatsApp</button>
+                <button onclick="window.location.href='mailto:jardsonlucena97@gmail.com'" style="
+                    padding: 12px;
+                    border-radius: 10px;
+                    border: none;
+                    background: rgba(59,130,246,.15);
+                    color: #3B82F6;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all .2s;
+                    font-size: 13px;
+                ">📧 Email</button>
+            </div>
+            
+            <button onclick="authSair()" style="
+                width: 100%;
+                padding: 12px;
+                border-radius: 10px;
+                border: 1px solid #EF4444;
+                background: transparent;
+                color: #EF4444;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all .2s;
+                font-size: 13px;
+            ">Sair</button>
+        </div>
+    `;
+    
+    document.body.appendChild(paymentScreen);
+}
