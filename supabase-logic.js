@@ -9,23 +9,35 @@ let _isSyncing = false;
 
 // Inicializar Autenticação
 async function initAuth() {
-    const { data: { session } } = await _supabase.auth.getSession();
-    if (session) {
-        _currentUser = session.user;
-        await loadUserData();
-        showApp();
-    } else {
+    try {
+        // Sempre verificar a sessão do Supabase primeiro
+        const { data: { session }, error } = await _supabase.auth.getSession();
+        
+        if (session && session.user) {
+            _currentUser = session.user;
+            await loadUserData();
+            showApp();
+        } else {
+            // Sem sessão - mostrar tela de login
+            _currentUser = null;
+            localStorage.clear();
+            showAuth();
+        }
+    } catch (err) {
+        console.error('Erro ao inicializar auth:', err);
         showAuth();
     }
 
     // Escutar mudanças na auth
     _supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' && session?.user) {
             _currentUser = session.user;
+            localStorage.clear();
             await loadUserData();
             showApp();
         } else if (event === 'SIGNED_OUT') {
             _currentUser = null;
+            localStorage.clear();
             showAuth();
         }
     });
@@ -95,7 +107,22 @@ async function authCadastro() {
 
 async function authSair() {
     if (confirm('Deseja sair da sua conta?')) {
+        // Limpar todos os dados locais
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Resetar variáveis globais
+        V = [];
+        M = [];
+        C = [];
+        P = [];
+        CF = {};
+        _currentUser = null;
+        
+        // Fazer logout no Supabase
         await _supabase.auth.signOut();
+        
+        // Recarregar a página
         location.reload();
     }
 }

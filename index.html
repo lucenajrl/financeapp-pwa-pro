@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FinanceApp Pro">
-<link rel="apple-touch-icon" href="/icon-192.png">
-<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/icon-v2-192.png">
+<link rel="icon" type="image/png" href="/favicon-v2.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/supabase-config.js"></script>
 <script src="/supabase-logic.js"></script>
@@ -1337,12 +1337,20 @@ function rDash(){
  const dep=M.filter(x=>x.tp==='despesa'&&x.data===s&&(x.pago===true||!x.venc)).reduce((a,b)=>a+pn(b.vl),0);
  acc+=r-dep;rs.push(r);ds.push(dep);sl.push(acc);
  }
- mkC('dChart','bar',lbs,[
- {label:'Receitas',data:rs,backgroundColor:'rgba(34,197,94,.45)',borderColor:'#22C55E',borderWidth:2,borderRadius:4},
- {label:'Despesas',data:ds,backgroundColor:'rgba(239,68,68,.4)',borderColor:'#EF4444',borderWidth:2,borderRadius:4},
- {label:'Saldo',data:sl,type:'line',borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',tension:.4,fill:true,pointRadius:2,borderWidth:2}
- ]);
- renderDVChart();
+ // Aguardar o DOM estar pronto e fazer resize
+ setTimeout(() => {
+  mkC('dChart','bar',lbs,[
+   {label:'Receitas',data:rs,backgroundColor:'rgba(34,197,94,.45)',borderColor:'#22C55E',borderWidth:2,borderRadius:4},
+   {label:'Despesas',data:ds,backgroundColor:'rgba(239,68,68,.4)',borderColor:'#EF4444',borderWidth:2,borderRadius:4},
+   {label:'Saldo',data:sl,type:'line',borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',tension:.4,fill:true,pointRadius:2,borderWidth:2}
+  ]);
+  // Forçar resize do canvas
+  const canvas = document.getElementById('dChart');
+  if (canvas && canvas.offsetParent !== null) {
+   window.dispatchEvent(new Event('resize'));
+  }
+  renderDVChart();
+ }, 100);
  renderAnivCard();
  renderFluxoCaixa();
  const inadList=getInadimplentes();
