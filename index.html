@@ -1338,19 +1338,31 @@ function rDash(){
  acc+=r-dep;rs.push(r);ds.push(dep);sl.push(acc);
  }
  // Aguardar o DOM estar pronto e fazer resize
+ // Criar gráfico imediatamente
+ mkC('dChart','bar',lbs,[
+  {label:'Receitas',data:rs,backgroundColor:'rgba(34,197,94,.45)',borderColor:'#22C55E',borderWidth:2,borderRadius:4},
+  {label:'Despesas',data:ds,backgroundColor:'rgba(239,68,68,.4)',borderColor:'#EF4444',borderWidth:2,borderRadius:4},
+  {label:'Saldo',data:sl,type:'line',borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',tension:.4,fill:true,pointRadius:2,borderWidth:2}
+ ]);
+ 
+ // Forçar resize do canvas para mobile
  setTimeout(() => {
-  mkC('dChart','bar',lbs,[
-   {label:'Receitas',data:rs,backgroundColor:'rgba(34,197,94,.45)',borderColor:'#22C55E',borderWidth:2,borderRadius:4},
-   {label:'Despesas',data:ds,backgroundColor:'rgba(239,68,68,.4)',borderColor:'#EF4444',borderWidth:2,borderRadius:4},
-   {label:'Saldo',data:sl,type:'line',borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',tension:.4,fill:true,pointRadius:2,borderWidth:2}
-  ]);
-  // Forçar resize do canvas
   const canvas = document.getElementById('dChart');
-  if (canvas && canvas.offsetParent !== null) {
-   window.dispatchEvent(new Event('resize'));
+  if (canvas && window.charts && window.charts['dChart']) {
+   window.charts['dChart'].resize();
   }
   renderDVChart();
  }, 100);
+ 
+ // Adicionar listener para mudanças de orientação
+ window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+   const canvas = document.getElementById('dChart');
+   if (canvas && window.charts && window.charts['dChart']) {
+    window.charts['dChart'].resize();
+   }
+  }, 100);
+ });
  renderAnivCard();
  renderFluxoCaixa();
  const inadList=getInadimplentes();

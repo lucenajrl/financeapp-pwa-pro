@@ -52,7 +52,13 @@ function showApp() {
     document.getElementById('authScreen').classList.add('hide');
     CF.nome = _currentUser.user_metadata.nome || _currentUser.email;
     updUser();
-    checkAdmin();
+    
+    // Chamar checkAdmin com delay para garantir que tudo está carregado
+    setTimeout(() => {
+        console.log('Chamando checkAdmin - Email:', _currentUser?.email);
+        checkAdmin();
+    }, 100);
+    
     initTrialTimer();
     go('dashboard');
     toast('Bem-vindo de volta! 👋');
@@ -207,11 +213,27 @@ S.s = function(key, val) {
 function checkAdmin() {
     const adminEmail = 'jardsonlucena97@gmail.com'; // Seu e-mail
     const adminBtn = document.getElementById('adminBtn');
+    
+    console.log('=== checkAdmin ===');
+    console.log('_currentUser:', _currentUser);
+    console.log('_currentUser.email:', _currentUser?.email);
+    console.log('adminEmail:', adminEmail);
+    console.log('adminBtn element:', adminBtn);
+    console.log('Comparacao:', _currentUser?.email === adminEmail);
+    
     if (_currentUser && _currentUser.email === adminEmail) {
+        console.log('✓ ADMIN DETECTADO - Mostrando botao');
         if (adminBtn) {
             adminBtn.style.display = 'flex';
+            adminBtn.style.visibility = 'visible';
+            adminBtn.style.opacity = '1';
+            adminBtn.style.pointerEvents = 'auto';
+            console.log('✓ Botao ADM exibido');
+        } else {
+            console.log('✗ adminBtn nao encontrado no DOM');
         }
     } else {
+        console.log('✗ Usuario nao eh admin');
         if (adminBtn) {
             adminBtn.style.display = 'none';
         }
