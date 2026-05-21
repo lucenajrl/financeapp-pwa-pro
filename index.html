@@ -683,6 +683,48 @@
   </div><!-- /pg-bottom -->
 </div>
 
+<!-- ═══ PAINEL ADM ═══ -->
+<div class="pg" id="pg-admin">
+  <div class="tb">
+    <div class="tb-l">
+      <button class="ham" onclick="openSB()">☰</button>
+      <div class="pg-t"><span class="lci"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>Painel ADM</div>
+    </div>
+    <div class="tb-r">
+      <button class="btn bpd sm" onclick="admLoad()"><span class="lci"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span> Atualizar</button>
+    </div>
+  </div>
+  <div class="pg-top">
+    <div class="grid" id="admCards" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px"></div>
+    <div class="cbox" id="cbox_admForm">
+      <div class="cbox-h">
+        <div class="cbox-t"><span class="lci"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span> Ativar Nova Assinatura</div>
+        <button class="cbox-toggle" onclick="toggleCbox('cbox_admForm')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      </div>
+      <div class="cbox-body">
+        <div class="fg" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end;gap:10px">
+          <div class="fi"><label>E-mail do cliente</label><input type="email" id="admEmail" placeholder="cliente@email.com"></div>
+          <div class="fi"><label>Plano</label><select id="admPlano"><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></div>
+          <div class="fi"><label>Vence em</label><input type="date" id="admExpires"></div>
+          <button class="btn bp" onclick="admAddSub()" style="white-space:nowrap"><span class="lci"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Ativar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pg-bottom">
+    <div class="tbox">
+      <div class="tbox-h">
+        <div class="tbox-t"><span class="lci"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--pr);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Assinantes</div>
+        <input id="admSearch" type="text" placeholder="Buscar e-mail..." style="width:200px;font-size:12px;padding:6px 10px" oninput="admFilter()">
+      </div>
+      <div class="tbox-wrap"><table>
+        <thead><tr><th>E-mail</th><th>Plano</th><th>Status</th><th>Vencimento</th><th>Criado em</th><th>Ações</th></tr></thead>
+        <tbody id="admTbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--t3)">Carregando...</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
 </main>
 
 <!-- ══════════ MODAIS ══════════ -->
@@ -4841,5 +4883,84 @@ function selecionarEstado(uf){
   </div>
 </div>
 
+<script>
+let _admSubs=[];
+async function admLoad(){
+  if(!_supabase)return;
+  document.getElementById('admTbody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t3)">Carregando...</td></tr>';
+  try{
+    const{data,error}=await _supabase.from('subscriptions').select('*').order('created_at',{ascending:false});
+    if(error)throw error;
+    _admSubs=data||[];
+    admRender();admCards();
+  }catch(e){
+    document.getElementById('admTbody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--rd)">Erro ao carregar. Verifique a tabela subscriptions no Supabase.</td></tr>';
+  }
+}
+function admFilter(){admRender();}
+function admCards(){
+  const ativos=_admSubs.filter(s=>s.status==='active'&&(!s.expires_at||new Date(s.expires_at)>new Date())).length;
+  const bloqueados=_admSubs.filter(s=>s.status==='blocked').length;
+  const vencidos=_admSubs.filter(s=>s.status==='active'&&s.expires_at&&new Date(s.expires_at)<new Date()).length;
+  document.getElementById('admCards').innerHTML=`
+    <div class="card"><div class="ch"><div class="cl">Total</div><div class="ci ib"><span class="lci"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></div></div><div class="cv">${_admSubs.length}</div><div class="cs">cadastrados</div></div>
+    <div class="card"><div class="ch"><div class="cl">Ativos</div><div class="ci ig"><span class="lci"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div></div><div class="cv cg">${ativos}</div><div class="cs up">▲ pagantes</div></div>
+    <div class="card"><div class="ch"><div class="cl">Vencidos</div><div class="ci iy"><span class="lci"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span></div></div><div class="cv cy">${vencidos}</div><div class="cs wn">● renovação pendente</div></div>
+    <div class="card"><div class="ch"><div class="cl">Bloqueados</div><div class="ci ir"><span class="lci"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></div></div><div class="cv cr">${bloqueados}</div><div class="cs dn">● sem acesso</div></div>
+  `;
+  if(typeof lucide!=='undefined')lucide.createIcons();
+}
+function admRender(){
+  const search=(document.getElementById('admSearch')?.value||'').toLowerCase();
+  const subs=_admSubs.filter(s=>!search||s.email.toLowerCase().includes(search));
+  if(!subs.length){document.getElementById('admTbody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--t3)">Nenhum assinante encontrado</td></tr>';return;}
+  document.getElementById('admTbody').innerHTML=subs.map(s=>{
+    const isOwner=s.email==='jardsonlucena97@gmail.com';
+    const vencido=s.expires_at&&new Date(s.expires_at)<new Date();
+    const expStr=s.expires_at?new Date(s.expires_at).toLocaleDateString('pt-BR'):'—';
+    const criadoStr=s.created_at?new Date(s.created_at).toLocaleDateString('pt-BR'):'—';
+    let badge=isOwner?'<span class="bdg" style="background:rgba(251,191,36,.15);color:#FBBF24">👑 Owner</span>':s.status==='blocked'?'<span class="bdg bdg-atrasado">Bloqueado</span>':vencido?'<span class="bdg bdg-pendente">Vencido</span>':'<span class="bdg bdg-pago">Ativo</span>';
+    const acoes=isOwner?'<span style="font-size:11px;color:var(--t3)">Acesso ilimitado</span>':`<div class="acts">${s.status==='active'&&!vencido?`<button class="btn brd sm" onclick="admBlock('${s.email}')">Bloquear</button>`:`<button class="btn bgd sm" onclick="admUnblock('${s.email}')">Ativar</button>`}<button class="btn bpd sm" onclick="admRenew('${s.email}')">Renovar</button><button class="btn bh sm" onclick="admDelete('${s.email}')">Excluir</button></div>`;
+    return`<tr><td><strong>${s.email}</strong></td><td>${s.plan||'—'}</td><td>${badge}</td><td style="${vencido?'color:var(--rd)':''}">${expStr}</td><td>${criadoStr}</td><td>${acoes}</td></tr>`;
+  }).join('');
+}
+async function admAddSub(){
+  const email=document.getElementById('admEmail').value.trim();
+  const plan=document.getElementById('admPlano').value;
+  const expires=document.getElementById('admExpires').value;
+  if(!email||!expires){toast('Preencha e-mail e vencimento','err');return;}
+  try{
+    const{error}=await _supabase.from('subscriptions').upsert({email,status:'active',plan,expires_at:new Date(expires).toISOString(),updated_at:new Date().toISOString()},{onConflict:'email'});
+    if(error)throw error;
+    toast('Assinatura de '+email+' ativada!');
+    document.getElementById('admEmail').value='';
+    document.getElementById('admExpires').value='';
+    await admLoad();
+  }catch(e){toast('Erro: '+e.message,'err');}
+}
+async function admBlock(email){
+  if(!confirm('Bloquear '+email+'?'))return;
+  await _supabase.from('subscriptions').update({status:'blocked',updated_at:new Date().toISOString()}).eq('email',email);
+  toast(email+' bloqueado');await admLoad();
+}
+async function admUnblock(email){
+  await _supabase.from('subscriptions').update({status:'active',updated_at:new Date().toISOString()}).eq('email',email);
+  toast(email+' ativado');await admLoad();
+}
+async function admRenew(email){
+  const days=prompt('Renovar por quantos dias?','30');
+  if(!days||isNaN(days))return;
+  const sub=_admSubs.find(s=>s.email===email);
+  const base=sub?.expires_at&&new Date(sub.expires_at)>new Date()?new Date(sub.expires_at):new Date();
+  base.setDate(base.getDate()+parseInt(days));
+  await _supabase.from('subscriptions').update({status:'active',expires_at:base.toISOString(),updated_at:new Date().toISOString()}).eq('email',email);
+  toast(email+' renovado por '+days+' dias');await admLoad();
+}
+async function admDelete(email){
+  if(!confirm('Excluir permanentemente '+email+'?'))return;
+  await _supabase.from('subscriptions').delete().eq('email',email);
+  toast(email+' excluído');await admLoad();
+}
+</script>
 </body>
 </html>

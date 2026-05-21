@@ -62,17 +62,15 @@ function showApp() {
     initTrialTimer();
     go('dashboard');
     toast('Bem-vindo de volta! 👋');
-    // Forçar re-render dos charts no mobile após tudo carregar
     setTimeout(() => {
         if (typeof rDash === 'function') rDash();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }, 300);
-    // Re-render quando app volta ao foco (troca mobile/desktop)
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden && typeof rDash === 'function') {
             setTimeout(rDash, 100);
         }
-    });
+    }, { once: true });
 }
 
 // Funções de Auth (Substituindo as originais)
@@ -137,7 +135,8 @@ async function authSair() {
         _currentUser = null;
         
         // Fazer logout no Supabase
-        await _supabase.auth.signOut();
+        localStorage.clear();
+    await _supabase.auth.signOut();
         
         // Recarregar a página
         location.reload();
@@ -195,9 +194,7 @@ async function loadUserData() {
         P = [];
         CF = {};
         
-        // Novo usuário — limpar localStorage completamente
-        localStorage.clear();
-        // Criar registro inicial no Supabase
+        // Criar registro inicial
         await _supabase.from('user_data').insert({
             user_id: _currentUser.id,
             vendas: [],
@@ -256,7 +253,9 @@ function checkAdmin() {
 
 // Inicializar ao carregar
 window.addEventListener('load', () => {
-    initAuth();
+    initAuth().then(() => {
+        checkAdmin();
+    });
 });
 
 
