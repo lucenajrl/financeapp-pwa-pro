@@ -537,12 +537,12 @@
     <div class="st"><span class="lci"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Perfil</div>
     <div class="fg">
       <div class="fi"><label>Nome</label><input id="cfNome" placeholder="Seu nome"></div>
-      <div class="fi"><label style="display:flex;align-items:center;gap:5px"><span class="lci"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span> Nome da Empresa <span style="font-size:10px;color:var(--t3);font-weight:400">— usado na mensagem de aniversário</span></label><input id="cfEmp" placeholder="Ex: Legado Parfum"></div>
+      <div class="fi"><label style="display:flex;align-items:center;gap:5px"><span class="lci"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span> Nome da Empresa <span style="font-size:10px;color:var(--t3);font-weight:400">— usado na mensagem de aniversário</span></label><input id="cfEmp" placeholder="Ex: Minha Empresa"></div>
       <div class="fi"><label>WhatsApp</label><input id="cfWh" placeholder="11999999999"></div>
       <div class="fi"><label>Moeda</label>
         <select id="cfMo"><option value="R$">Real (R$)</option><option value="$">Dólar ($)</option><option value="€">Euro (€)</option></select>
       </div>
-      <div class="fi fw"><label style="display:flex;align-items:center;gap:5px"><span class="lci"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span> Instagram <span style="font-size:10px;color:var(--t3);font-weight:400">— aparece nas demais mensagens (extrato, cobrança, etc)</span></label><div style="position:relative"><span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:12px">@</span><input id="cfInsta" placeholder="seuinstagram" style="padding-left:22px"></div></div>
+      <div class="fi fw"><label style="display:flex;align-items:center;gap:5px"><span class="lci"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span> Instagram <span style="font-size:10px;color:var(--t3);font-weight:400">— aparece nas demais mensagens (extrato, cobrança, etc)</span></label><div style="position:relative"><span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:12px">@</span><input id="cfInsta" placeholder="usuario" style="padding-left:22px"></div></div>
       <div class="fi fw"><button class="btn bpd" onclick="saveCfg()"><span class="lci"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span> Salvar Perfil</button></div>
     </div>
   </div>
@@ -4484,7 +4484,7 @@ function salvarEdicaoCliente(){
 function enviarCardAniversario(){
  const cl = window._anivAtual;
  if(!cl) return;
- const emp = CF.emp || 'Legado Parfum';
+ const emp = CF.emp || 'Minha Empresa';
  const insta= CF.insta ? '@'+CF.insta : '';
  const tel = (cl.tel||'').replace(/\D/g,'');
  const msg = (CF.msgAniv||'🎂 Feliz Aniversário, {nome}! A {empresa} deseja um dia muito especial pra você! Aproveite e venha nos visitar 🎉')

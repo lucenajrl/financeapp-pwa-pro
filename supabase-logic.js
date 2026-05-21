@@ -6,38 +6,61 @@ const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Estado Global de Autenticação
 let _currentUser = null;
 let _isSyncing = false;
+let _authInitialized = false;
 
-// Inicializar Autenticação
+// ═══ INICIALIZAÇÃO CIRÚRGICA ═══
 async function initAuth() {
     try {
-        // Sempre verificar a sessão do Supabase primeiro
+        // PASSO 1: Limpar TUDO da memória local ANTES de qualquer coisa
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // PASSO 2: Perguntar ao Supabase: "Quem está logado?"
         const { data: { session }, error } = await _supabase.auth.getSession();
         
         if (session && session.user) {
+            // Usuário autenticado na nuvem
             _currentUser = session.user;
+            _authInitialized = true;
+            
+            // PASSO 3: Carregar dados da nuvem
             await loadUserData();
+            
+            // PASSO 4: Mostrar o app
             showApp();
         } else {
             // Sem sessão - mostrar tela de login
             _currentUser = null;
-            localStorage.clear();
+            _authInitialized = true;
             showAuth();
         }
     } catch (err) {
         console.error('Erro ao inicializar auth:', err);
+        _authInitialized = true;
         showAuth();
     }
 
-    // Escutar mudanças na auth
+    // Escutar mudanças na autenticação em tempo real
     _supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth State Change:', event, session?.user?.email);
+        
         if (event === 'SIGNED_IN' && session?.user) {
-            _currentUser = session.user;
+            // Novo login - limpar tudo e recarregar
             localStorage.clear();
+            sessionStorage.clear();
+            _currentUser = session.user;
             await loadUserData();
             showApp();
         } else if (event === 'SIGNED_OUT') {
-            _currentUser = null;
+            // Logout - limpar tudo
             localStorage.clear();
+            sessionStorage.clear();
+            _currentUser = null;
+            V = [];
+            M = [];
+            C = [];
+            P = [];
+            CF = {};
             showAuth();
         }
     });
@@ -46,26 +69,45 @@ async function initAuth() {
 // Mostrar Telas
 function showAuth() {
     document.getElementById('authScreen').classList.remove('hide');
+    document.querySelector('.main').style.display = 'none';
 }
 
 function showApp() {
     document.getElementById('authScreen').classList.add('hide');
-    CF.nome = _currentUser.user_metadata.nome || _currentUser.email;
-    updUser();
+    document.querySelector('.main').style.display = 'block';
     
-    // Chamar checkAdmin com delay para garantir que tudo está carregado
-    setTimeout(() => {
-        console.log('Chamando checkAdmin - Email:', _currentUser?.email);
+    // Atualizar UI com dados do usuário
+    if (_currentUser) {
+        CF.nome = _currentUser.user_metadata?.nome || _currentUser.email;
+        updUser();
+    }
+    
+    // Chamar checkAdmin repetidamente até sucesso (máx 10 tentativas)
+    let adminAttempts = 0;
+    const adminInterval = setInterval(() => {
+        adminAttempts++;
+        console.log(`checkAdmin tentativa ${adminAttempts}`);
         checkAdmin();
-    }, 100);
+        
+        if (adminAttempts >= 10 || (document.getElementById('adminBtn')?.style.display === 'flex')) {
+            clearInterval(adminInterval);
+        }
+    }, 50);
     
+    // Inicializar timer de degustação
     initTrialTimer();
+    
+    // Navegar para dashboard
     go('dashboard');
     toast('Bem-vindo de volta! 👋');
+    
+    // Renderizar gráficos com delay
     setTimeout(() => {
         if (typeof rDash === 'function') rDash();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }, 300);
+    
+    // Rerender ao voltar do background
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden && typeof rDash === 'function') {
             setTimeout(rDash, 100);
@@ -73,7 +115,7 @@ function showApp() {
     }, { once: true });
 }
 
-// Funções de Auth (Substituindo as originais)
+// ═══ FUNÇÕES DE AUTH ═══
 async function authLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPass').value;
@@ -122,7 +164,7 @@ async function authCadastro() {
 
 async function authSair() {
     if (confirm('Deseja sair da sua conta?')) {
-        // Limpar todos os dados locais
+        // Limpar ABSOLUTAMENTE TUDO
         localStorage.clear();
         sessionStorage.clear();
         
@@ -135,15 +177,14 @@ async function authSair() {
         _currentUser = null;
         
         // Fazer logout no Supabase
-        localStorage.clear();
-    await _supabase.auth.signOut();
+        await _supabase.auth.signOut();
         
-        // Recarregar a página
+        // Recarregar a página para garantir limpeza total
         location.reload();
     }
 }
 
-// Sincronização de Dados
+// ═══ SINCRONIZAÇÃO DE DADOS (NUVEM PRIMEIRO) ═══
 async function saveUserData() {
     if (!_currentUser || _isSyncing) return;
     _isSyncing = true;
@@ -176,25 +217,25 @@ async function loadUserData() {
         .single();
 
     if (data) {
+        // Dados existem na nuvem - carregar
         V = data.vendas || [];
         M = data.movimentacoes || [];
         C = data.clientes || [];
         P = data.produtos || [];
         Object.assign(CF, data.config || {});
         
-        // Atualizar UI
-        updUser();
-        if (typeof rDash === 'function') setTimeout(rDash, 100);
-        if (typeof lucide !== 'undefined') setTimeout(() => lucide.createIcons(), 150);
+        console.log('✓ Dados carregados da nuvem');
     } else {
-        // Novo usuario - resetar tudo
+        // Novo usuário - inicializar vazio
         V = [];
         M = [];
         C = [];
         P = [];
         CF = {};
         
-        // Criar registro inicial
+        console.log('✓ Novo usuário - dados inicializados vazios');
+        
+        // Criar registro inicial na nuvem
         await _supabase.from('user_data').insert({
             user_id: _currentUser.id,
             vendas: [],
@@ -204,12 +245,18 @@ async function loadUserData() {
             config: {}
         });
     }
+    
+    // Atualizar UI
+    updUser();
+    if (typeof rDash === 'function') setTimeout(rDash, 100);
+    if (typeof lucide !== 'undefined') setTimeout(() => lucide.createIcons(), 150);
 }
 
 // Sobrescrever funções de salvamento local para usar Supabase
 const originalSave = S.s;
 S.s = function(key, val) {
     originalSave(key, val);
+    
     // Mapear chaves locais para variáveis globais
     if (key === 'fa_v') V = val;
     if (key === 'fa_m') M = val;
@@ -217,60 +264,47 @@ S.s = function(key, val) {
     if (key === 'fa_p') P = val;
     if (key === 'fa_cf') Object.assign(CF, val);
     
+    // Salvar na nuvem
     saveUserData();
 };
 
-// Painel ADM (Apenas para o dono)
+// ═══ PAINEL ADM (APENAS PARA O DONO) ═══
 function checkAdmin() {
-    const adminEmail = 'jardsonlucena97@gmail.com'; // Seu e-mail
+    const adminEmail = 'jardsonlucena97@gmail.com';
     const adminBtn = document.getElementById('adminBtn');
     
-    console.log('=== checkAdmin ===');
-    console.log('_currentUser:', _currentUser);
-    console.log('_currentUser.email:', _currentUser?.email);
-    console.log('adminEmail:', adminEmail);
-    console.log('adminBtn element:', adminBtn);
-    console.log('Comparacao:', _currentUser?.email === adminEmail);
+    if (!_currentUser) {
+        console.log('❌ checkAdmin: _currentUser ainda não está definido');
+        return;
+    }
     
-    if (_currentUser && _currentUser.email === adminEmail) {
-        console.log('✓ ADMIN DETECTADO - Mostrando botao');
-        if (adminBtn) {
-            adminBtn.style.display = 'flex';
-            adminBtn.style.visibility = 'visible';
-            adminBtn.style.opacity = '1';
-            adminBtn.style.pointerEvents = 'auto';
-            console.log('✓ Botao ADM exibido');
-        } else {
-            console.log('✗ adminBtn nao encontrado no DOM');
-        }
-    } else {
-        console.log('✗ Usuario nao eh admin');
-        if (adminBtn) {
-            adminBtn.style.display = 'none';
-        }
+    const isAdmin = _currentUser.email === adminEmail;
+    
+    console.log(`🔍 checkAdmin: ${_currentUser.email} vs ${adminEmail} = ${isAdmin}`);
+    
+    if (isAdmin && adminBtn) {
+        console.log('✅ ADMIN DETECTADO - Mostrando Painel ADM');
+        adminBtn.style.display = 'flex';
+        adminBtn.style.visibility = 'visible';
+        adminBtn.style.opacity = '1';
+        adminBtn.style.pointerEvents = 'auto';
+    } else if (adminBtn) {
+        console.log('❌ Não é admin - ocultando Painel ADM');
+        adminBtn.style.display = 'none';
     }
 }
 
-// Inicializar ao carregar
-window.addEventListener('load', () => {
-    initAuth().then(() => {
-        checkAdmin();
-    });
-});
-
-
 // ═══ SISTEMA DE DEGUSTAÇÃO (30 MINUTOS) ═══
 let _trialStartTime = null;
-const TRIAL_DURATION_MS = 30 * 60 * 1000; // 30 minutos em milissegundos
+const TRIAL_DURATION_MS = 30 * 60 * 1000;
 const ADMIN_EMAIL = 'jardsonlucena97@gmail.com';
 
 function initTrialTimer() {
     if (_currentUser && _currentUser.email === ADMIN_EMAIL) {
-        // Admin tem acesso ilimitado
+        console.log('👑 Admin detectado - acesso ilimitado');
         return;
     }
     
-    // Carregar tempo de início da sessão do localStorage
     const storageKey = `trial_start_${_currentUser.id}`;
     const savedStartTime = localStorage.getItem(storageKey);
     
@@ -281,7 +315,6 @@ function initTrialTimer() {
         localStorage.setItem(storageKey, _trialStartTime.toString());
     }
     
-    // Iniciar verificação a cada 5 segundos
     setInterval(checkTrialExpiration, 5000);
 }
 
@@ -297,10 +330,8 @@ function checkTrialExpiration() {
 }
 
 function showPaymentScreen() {
-    // Ocultar app principal
     document.querySelector('.main').style.display = 'none';
     
-    // Criar tela de pagamento
     const paymentScreen = document.createElement('div');
     paymentScreen.id = 'paymentScreen';
     paymentScreen.style.cssText = `
@@ -408,3 +439,8 @@ function showPaymentScreen() {
     
     document.body.appendChild(paymentScreen);
 }
+
+// ═══ INICIAR TUDO ═══
+window.addEventListener('load', () => {
+    initAuth();
+});
