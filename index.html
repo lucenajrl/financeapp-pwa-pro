@@ -1183,7 +1183,7 @@ const S={
  so:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
 };
 
-let V=S.g('fa_v'), M=S.g('fa_m'), C=S.g('fa_c'), FAT=S.g('fa_fat'), E=S.g('fa_e'), CF=S.go('fa_cf'), CL=S.go('fa_cl')||{};
+let V=[], M=[], C=[], FAT=[], E=[], P=[], CF={}, CL={};
 
 const localDate=(d=new Date())=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;};
 const today=()=>localDate();

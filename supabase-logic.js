@@ -15,12 +15,16 @@ async function initAuth() {
         
         if (session && session.user) {
             _currentUser = session.user;
+            // Limpar dados globais antes de carregar os novos
+            V=[]; M=[]; C=[]; FAT=[]; E=[]; P=[]; CF={}; CL={};
             await loadUserData();
             showApp();
         } else {
             // Sem sessão - mostrar tela de login
             _currentUser = null;
             localStorage.clear();
+            sessionStorage.clear();
+            V=[]; M=[]; C=[]; FAT=[]; E=[]; P=[]; CF={}; CL={};
             showAuth();
         }
     } catch (err) {
@@ -33,11 +37,15 @@ async function initAuth() {
         if (event === 'SIGNED_IN' && session?.user) {
             _currentUser = session.user;
             localStorage.clear();
+            sessionStorage.clear();
+            V=[]; M=[]; C=[]; FAT=[]; E=[]; P=[]; CF={}; CL={};
             await loadUserData();
             showApp();
         } else if (event === 'SIGNED_OUT') {
             _currentUser = null;
             localStorage.clear();
+            sessionStorage.clear();
+            V=[]; M=[]; C=[]; FAT=[]; E=[]; P=[]; CF={}; CL={};
             showAuth();
         }
     });
@@ -229,10 +237,16 @@ S.s = function(key, val) {
 };
 
 // Painel ADM (Apenas para o dono)
-function checkAdmin() {
+async function checkAdmin() {
     const adminEmail = 'jardsonlucena97@gmail.com';
     const adminBtn = document.getElementById('adminBtn');
-    if (_currentUser && _currentUser.email === adminEmail) {
+    
+    if (!_currentUser) {
+        if (adminBtn) adminBtn.style.display = 'none';
+        return;
+    }
+
+    if (_currentUser.email === adminEmail) {
         if (adminBtn) {
             adminBtn.style.display = 'flex';
             adminBtn.style.visibility = 'visible';
@@ -240,6 +254,25 @@ function checkAdmin() {
             adminBtn.style.pointerEvents = 'auto';
         }
     } else {
+        // Verificar se o usuário tem uma assinatura ativa
+        try {
+            const { data, error } = await _supabase
+                .from('subscriptions')
+                .select('status, expires_at')
+                .eq('email', _currentUser.email)
+                .single();
+
+            if (data) {
+                if (data.status === 'blocked') {
+                    showPaymentScreen();
+                } else if (data.expires_at && new Date(data.expires_at) < new Date()) {
+                    showPaymentScreen();
+                }
+            }
+        } catch (e) {
+            console.error('Erro ao verificar assinatura:', e);
+        }
+        
         if (adminBtn) adminBtn.style.display = 'none';
     }
 }
