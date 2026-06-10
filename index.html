@@ -4054,12 +4054,13 @@ function renderFluxoCaixa(){
  if(!el) return;
  const dias=30;
  const hoje=new Date();
+ const ms=today().substring(0,7);
  const rows=[];
- let saldoAcum=0;
 
- const rvT=V.reduce((a,v)=>a+vRecebido(v),0);
- const dT=M.filter(x=>x.tp==='despesa'&&x.pago===true).reduce((a,b)=>a+pn(b.vl),0);
- saldoAcum=rvT-dT;
+ // Saldo inicial = receitas recebidas no mês atual - despesas pagas no mês atual
+ const rvM=V.reduce((a,v)=>a+(v.parcelas||[]).filter(p=>p.st==='Pago'&&(p.dataPgto||p.data||'').startsWith(ms)).reduce((x,p)=>x+pn(p.vl),0),0);
+ const dpM=M.filter(x=>x.tp==='despesa'&&x.pago===true&&(x.dataPgto||x.venc||x.data||'').startsWith(ms)).reduce((a,b)=>a+pn(b.vl),0);
+ let saldoAcum=rvM-dpM;
 
  for(let i=0;i<=dias;i++){
  const dt=new Date(hoje);dt.setDate(hoje.getDate()+i);

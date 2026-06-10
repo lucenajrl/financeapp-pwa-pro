@@ -50,27 +50,25 @@ function showAuth() {
 
 function showApp() {
     document.getElementById('authScreen').classList.add('hide');
-    CF.nome = _currentUser.user_metadata.nome || _currentUser.email;
+    CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
+    CF.email = _currentUser.email;
+    S.so('fa_cf', CF);
     updUser();
-    
-    // Chamar checkAdmin com delay para garantir que tudo está carregado
-    setTimeout(() => {
-        console.log('Chamando checkAdmin - Email:', _currentUser?.email);
-        checkAdmin();
-    }, 100);
-    
+    setTimeout(() => { checkAdmin(); if(typeof checkAdminUI==='function') checkAdminUI(); }, 200);
+    setTimeout(() => { checkAdmin(); if(typeof checkAdminUI==='function') checkAdminUI(); }, 800);
     initTrialTimer();
     go('dashboard');
-    toast('Bem-vindo de volta! 👋');
-    setTimeout(() => {
-        if (typeof rDash === 'function') rDash();
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }, 300);
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            if (typeof rDash === 'function') rDash();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+    });
+    setTimeout(() => { if (typeof rDash === 'function') rDash(); }, 500);
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && typeof rDash === 'function') {
-            setTimeout(rDash, 100);
-        }
+        if (!document.hidden && typeof rDash === 'function') setTimeout(rDash, 150);
     }, { once: true });
+    toast('Bem-vindo de volta! 👋');
 }
 
 // Funções de Auth (Substituindo as originais)
@@ -147,27 +145,30 @@ async function authSair() {
 async function saveUserData() {
     if (!_currentUser || _isSyncing) return;
     _isSyncing = true;
-
     const payload = {
         user_id: _currentUser.id,
-        vendas: V,
-        movimentacoes: M,
-        clientes: C,
-        produtos: P,
-        config: CF,
+        vendas: V, movimentacoes: M, cartoes: C,
+        faturas: FAT, estoque: E, clientes_dados: CL,
+        produtos: P, config: CF,
         updated_at: new Date().toISOString()
     };
-
-    const { error } = await _supabase
-        .from('user_data')
-        .upsert(payload, { onConflict: 'user_id' });
-
-    if (error) console.error('Erro ao salvar dados:', error);
+    const { error } = await _supabase.from('user_data').upsert(payload, { onConflict: 'user_id' });
+    if (error) console.error('Erro ao salvar:', error);
     _isSyncing = false;
 }
 
 async function loadUserData() {
     if (!_currentUser) return;
+
+    // Limpar localStorage antes de carregar dados do Supabase
+    // Garante que nenhum dado de outro usuário persiste
+    localStorage.removeItem('fa_v');
+    localStorage.removeItem('fa_m');
+    localStorage.removeItem('fa_c');
+    localStorage.removeItem('fa_fat');
+    localStorage.removeItem('fa_e');
+    localStorage.removeItem('fa_cf');
+    localStorage.removeItem('fa_cl');
 
     const { data, error } = await _supabase
         .from('user_data')
@@ -178,76 +179,68 @@ async function loadUserData() {
     if (data) {
         V = data.vendas || [];
         M = data.movimentacoes || [];
-        C = data.clientes || [];
+        C = data.cartoes || [];
+        FAT = data.faturas || [];
+        E = data.estoque || [];
+        CL = data.clientes_dados || {};
         P = data.produtos || [];
         Object.assign(CF, data.config || {});
-        
-        // Atualizar UI
+        CF.email = _currentUser.email;
+        if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
+        // Sincronizar com localStorage
+        S._origSave('fa_v', V);
+        S._origSave('fa_m', M);
+        S._origSave('fa_c', C);
+        S._origSave('fa_fat', FAT);
+        S._origSave('fa_e', E);
+        S._origSave('fa_cl', CL);
+        S._origSave('fa_cf', CF);
         updUser();
-        if (typeof rDash === 'function') setTimeout(rDash, 100);
-        if (typeof lucide !== 'undefined') setTimeout(() => lucide.createIcons(), 150);
     } else {
-        // Novo usuario - resetar tudo
-        V = [];
-        M = [];
-        C = [];
-        P = [];
-        CF = {};
-        
-        // Criar registro inicial
+        // Novo usuário — tudo zerado
+        V = []; M = []; C = []; FAT = []; E = []; P = []; CL = {};
+        CF = {
+            nome: _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0],
+            email: _currentUser.email
+        };
         await _supabase.from('user_data').insert({
             user_id: _currentUser.id,
-            vendas: [],
-            movimentacoes: [],
-            clientes: [],
-            produtos: [],
-            config: {}
+            vendas: [], movimentacoes: [], cartoes: [], faturas: [],
+            estoque: [], clientes_dados: {}, produtos: [],
+            config: CF
         });
     }
 }
 
 // Sobrescrever funções de salvamento local para usar Supabase
-const originalSave = S.s;
+const originalSave = S.s.bind(S);
+S._origSave = originalSave;
 S.s = function(key, val) {
     originalSave(key, val);
-    // Mapear chaves locais para variáveis globais
     if (key === 'fa_v') V = val;
     if (key === 'fa_m') M = val;
     if (key === 'fa_c') C = val;
+    if (key === 'fa_fat') FAT = val;
+    if (key === 'fa_e') E = val;
+    if (key === 'fa_cl') CL = val;
     if (key === 'fa_p') P = val;
     if (key === 'fa_cf') Object.assign(CF, val);
-    
     saveUserData();
 };
 
 // Painel ADM (Apenas para o dono)
 function checkAdmin() {
-    const adminEmail = 'jardsonlucena97@gmail.com'; // Seu e-mail
+    const adminEmail = 'jardsonlucena97@gmail.com';
     const adminBtn = document.getElementById('adminBtn');
-    
-    console.log('=== checkAdmin ===');
-    console.log('_currentUser:', _currentUser);
-    console.log('_currentUser.email:', _currentUser?.email);
-    console.log('adminEmail:', adminEmail);
-    console.log('adminBtn element:', adminBtn);
-    console.log('Comparacao:', _currentUser?.email === adminEmail);
-    
     if (_currentUser && _currentUser.email === adminEmail) {
-        console.log('✓ ADMIN DETECTADO - Mostrando botao');
         if (adminBtn) {
             adminBtn.style.display = 'flex';
             adminBtn.style.visibility = 'visible';
             adminBtn.style.opacity = '1';
             adminBtn.style.pointerEvents = 'auto';
-            console.log('✓ Botao ADM exibido');
-        } else {
-            console.log('✗ adminBtn nao encontrado no DOM');
         }
     } else {
-        console.log('✗ Usuario nao eh admin');
-        if (adminBtn) {
-            adminBtn.style.display = 'none';
-        }
+        if (adminBtn) adminBtn.style.display = 'none';
     }
 }
 
