@@ -3405,18 +3405,34 @@ function expData(){
  toast('Backup salvo: '+nome);
  if(cur==='config')loadCfg();
 }
-function impData(ev){
- const f=ev.target.files[0];if(!f)return;
- const rd=new FileReader();
- rd.onload=e=>{try{
- const d=JSON.parse(e.target.result);
- if(d.v){V=d.v;S.s('fa_v',V);}if(d.m){M=d.m;S.s('fa_m',M);}
- if(d.c){C=d.c;S.s('fa_c',C);}if(d.fat){FAT=d.fat;S.s('fa_fat',FAT);}
- if(d.e){E=d.e;S.s('fa_e',E);}if(d.cf){CF=d.cf;S.so('fa_cf',CF);}
- toast('Importado!');render(cur);
- }catch{toast('Erro ao importar!','err');}};
- rd.readAsText(f);
-}
+async function impData(ev){
+	 const f=ev.target.files[0];if(!f)return;
+	 const rd=new FileReader();
+	 rd.onload=async e=>{try{
+	 const d=JSON.parse(e.target.result);
+	 // Compatibilidade com formatos antigos e novos
+	 if(d.v || d.vendas) V = d.v || d.vendas || [];
+	 if(d.m || d.movimentacoes) M = d.m || d.movimentacoes || [];
+	 if(d.c || d.cartoes) C = d.c || d.cartoes || [];
+	 if(d.fat || d.faturas) FAT = d.fat || d.faturas || [];
+	 if(d.e || d.estoque) E = d.e || d.estoque || [];
+	 if(d.cl || d.clientes_dados) CL = d.cl || d.clientes_dados || {};
+	 if(d.p || d.produtos) P = d.p || d.produtos || [];
+	 if(d.cf || d.config) Object.assign(CF, d.cf || d.config || {});
+	 
+	 // Salvar no localStorage (gatilha o saveUserData no supabase-logic.js)
+	 S.s('fa_v', V); S.s('fa_m', M); S.s('fa_c', C);
+	 S.s('fa_fat', FAT); S.s('fa_e', E); S.s('fa_cl', CL);
+	 S.s('fa_p', P); S.so('fa_cf', CF);
+	 
+	 toast('Importação concluída e enviada para nuvem! ☁️');
+	 setTimeout(() => location.reload(), 1500);
+	 }catch(err){
+	 console.error(err);
+	 toast('Erro ao importar! Verifique o arquivo.','err');
+	 }};
+	 rd.readAsText(f);
+	}
 function clearAll(){
  if(!confirm('Apagar TODOS os dados?'))return;
  if(!confirm('Confirmação final — ação irreversível!'))return;
