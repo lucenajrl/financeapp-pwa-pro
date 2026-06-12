@@ -204,6 +204,10 @@ async function loadUserData() {
         S._origSave('fa_cl', CL);
         S._origSave('fa_cf', CF);
         updUser();
+        // Re-render após todos os dados carregarem (garante card estoque baixo)
+        if (typeof rDash === 'function') {
+            requestAnimationFrame(() => requestAnimationFrame(() => rDash()));
+        }
     } else {
         // Novo usuário — tudo zerado
         V = []; M = []; C = []; FAT = []; E = []; P = []; CL = {};
