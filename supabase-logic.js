@@ -291,7 +291,7 @@ window.addEventListener('load', () => {
 
 // ═══ SISTEMA DE DEGUSTAÇÃO (30 MINUTOS) ═══
 let _trialStartTime = null;
-const TRIAL_DURATION_MS = 30 * 60 * 1000; // 30 minutos em milissegundos
+const TRIAL_DURATION_MS = 5 * 60 * 1000; // 5 minutos em milissegundos
 const ADMIN_EMAIL = 'jardsonlucena97@gmail.com';
 
 function initTrialTimer() {
@@ -348,7 +348,7 @@ function showPaymentScreen() {
                 <svg viewBox="0 0 24 24" style="width:28px;height:28px;stroke:#4F8EF7;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
             <h2 style="font-size:22px;font-weight:800;color:#F1F5F9;margin-bottom:8px;font-family:Syne,sans-serif">Período gratuito encerrado</h2>
-            <p style="color:#94A3B8;font-size:13px;margin-bottom:24px;line-height:1.6">Você utilizou seus <strong style="color:#E2E8F0">30 minutos</strong> de acesso gratuito ao FinanceApp Pro. Para continuar, assine e tenha acesso ilimitado.</p>
+            <p style="color:#94A3B8;font-size:13px;margin-bottom:24px;line-height:1.6">Você utilizou seus <strong style="color:#E2E8F0">5 minutos</strong> de acesso gratuito ao FinanceApp Pro. Para continuar, assine e tenha acesso ilimitado.</p>
 
             <!-- O que você ganha -->
             <div style="background:#111D35;border:1px solid rgba(79,142,247,.15);border-radius:12px;padding:16px;margin-bottom:24px;text-align:left;">
