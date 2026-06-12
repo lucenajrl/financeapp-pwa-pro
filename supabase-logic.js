@@ -210,11 +210,16 @@ async function loadUserData() {
         }
         toast('Dados sincronizados com a nuvem! ☁️');
     } else {
-        // Novo usuário — tudo zerado
+        // Novo usuário — tudo zerado (Garantindo campos vazios para isolamento total)
         V = []; M = []; C = []; FAT = []; E = []; P = []; CL = {};
         CF = {
             nome: _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0],
-            email: _currentUser.email
+            email: _currentUser.email,
+            emp: '',
+            wh: '',
+            insta: '',
+            meta: '0',
+            msgAniv: ''
         };
         await _supabase.from('user_data').insert({
             user_id: _currentUser.id,
