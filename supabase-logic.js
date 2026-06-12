@@ -208,6 +208,7 @@ async function loadUserData() {
         if (typeof rDash === 'function') {
             requestAnimationFrame(() => requestAnimationFrame(() => rDash()));
         }
+        toast('Dados sincronizados com a nuvem! ☁️');
     } else {
         // Novo usuário — tudo zerado
         V = []; M = []; C = []; FAT = []; E = []; P = []; CL = {};
