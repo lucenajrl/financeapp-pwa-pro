@@ -6,6 +6,7 @@ const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Estado Global de Autenticação
 let _currentUser = null;
 let _isSyncing = false;
+let _isLoaded = false;
 
 // Inicializar Autenticação
 async function initAuth() {
@@ -151,7 +152,7 @@ async function authSair() {
 
 // Sincronização de Dados
 async function saveUserData() {
-    if (!_currentUser || _isSyncing) return;
+    if (!_currentUser || _isSyncing || !_isLoaded) return;
     _isSyncing = true;
     const payload = {
         user_id: _currentUser.id,
@@ -167,6 +168,7 @@ async function saveUserData() {
 
 async function loadUserData() {
     if (!_currentUser) return;
+    _isLoaded = false;
 
     // Limpar localStorage antes de carregar dados do Supabase
     // Garante que nenhum dado de outro usuário persiste
@@ -208,8 +210,10 @@ async function loadUserData() {
         if (typeof rDash === 'function') {
             requestAnimationFrame(() => requestAnimationFrame(() => rDash()));
         }
+        _isLoaded = true;
         toast('Dados sincronizados com a nuvem! ☁️');
     } else {
+        _isLoaded = true;
         // Novo usuário — tudo zerado (Garantindo campos vazios para isolamento total)
         V = []; M = []; C = []; FAT = []; E = []; P = []; CL = {};
         CF = {
