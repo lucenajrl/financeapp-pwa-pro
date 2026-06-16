@@ -246,6 +246,14 @@ S.s = function(key, val) {
     saveUserData();
 };
 
+const originalSaveObj = S.so.bind(S);
+S.so = function(key, val) {
+    originalSaveObj(key, val);
+    if (key === 'fa_cf') Object.assign(CF, val);
+    if (key === 'fa_cl') CL = val;
+    saveUserData();
+};
+
 // Painel ADM (Apenas para o dono)
 async function checkAdmin() {
     const adminEmail = 'jardsonlucena97@gmail.com';
