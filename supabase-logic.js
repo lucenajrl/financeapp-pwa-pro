@@ -17,16 +17,19 @@ async function initAuth() {
         
         if (session && session.user) {
             _currentUser = session.user;
-            // Limpar dados globais antes de carregar os novos
-            V=[]; M=[]; C=[]; FAT=[]; E=[]; P=[]; CF={}; CL={};
+            // Carregar dados locais se existirem
+            V = S.g('fa_v');
+            M = S.g('fa_m');
+            C = S.g('fa_c');
+            FAT = S.g('fa_fat');
+            E = S.g('fa_e');
+            CL = S.go('fa_cl');
+            CF = S.go('fa_cf');
             await loadUserData();
             showApp();
         } else {
             // Sem sessão - mostrar tela de login
             _currentUser = null;
-            localStorage.clear();
-            sessionStorage.clear();
-            V=[]; M=[]; C=[]; FAT=[]; E=[]; P=[]; CF={}; CL={};
             showAuth();
         }
     } catch (err) {
@@ -38,16 +41,18 @@ async function initAuth() {
     _db.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
             _currentUser = session.user;
-            localStorage.clear();
-            sessionStorage.clear();
-            V=[]; M=[]; C=[]; FAT=[]; E=[]; P=[]; CF={}; CL={};
+            // Carregar dados locais
+            V = S.g('fa_v');
+            M = S.g('fa_m');
+            C = S.g('fa_c');
+            FAT = S.g('fa_fat');
+            E = S.g('fa_e');
+            CL = S.go('fa_cl');
+            CF = S.go('fa_cf');
             await loadUserData();
             showApp();
         } else if (event === 'SIGNED_OUT') {
             _currentUser = null;
-            localStorage.clear();
-            sessionStorage.clear();
-            V=[]; M=[]; C=[]; FAT=[]; E=[]; P=[]; CF={}; CL={};
             showAuth();
         }
     });
