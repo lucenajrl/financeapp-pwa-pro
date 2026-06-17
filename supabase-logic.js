@@ -1,7 +1,8 @@
 
 // Configuração e Lógica do Supabase para FinanceApp Pro
-const { createClient } = supabase;
-const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Configuração e Lógica do Supabase para FinanceApp Pro
+// Usar as variáveis já definidas no supabase-config.js
+const _db = typeof _supabase !== 'undefined' ? _supabase : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Estado Global de Autenticação
 let _currentUser = null;
@@ -12,7 +13,7 @@ let _isLoaded = false;
 async function initAuth() {
     try {
         // Sempre verificar a sessão do Supabase primeiro
-        const { data: { session }, error } = await _supabase.auth.getSession();
+        const { data: { session }, error } = await _db.auth.getSession();
         
         if (session && session.user) {
             _currentUser = session.user;
@@ -34,7 +35,7 @@ async function initAuth() {
     }
 
     // Escutar mudanças na auth
-    _supabase.auth.onAuthStateChange(async (event, session) => {
+    _db.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
             _currentUser = session.user;
             localStorage.clear();
@@ -89,7 +90,7 @@ async function authLogin() {
         return;
     }
 
-    const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await _db.auth.signInWithPassword({ email, password });
     if (error) {
         authShowErr('Erro: ' + error.message);
     }
@@ -110,7 +111,7 @@ async function authCadastro() {
         return;
     }
 
-    const { data, error } = await _supabase.auth.signUp({
+    const { data, error } = await _db.auth.signUp({
         email,
         password,
         options: {
@@ -141,8 +142,7 @@ async function authSair() {
         _currentUser = null;
         
         // Fazer logout no Supabase
-        localStorage.clear();
-    await _supabase.auth.signOut();
+        await _db.auth.signOut();
         
         // Recarregar a página
         location.reload();
@@ -164,7 +164,7 @@ async function saveUserData() {
         data_cf: CF,
         updated_at: new Date().toISOString()
     };
-    const { error } = await _supabase.from('user_data').upsert(payload, { onConflict: 'user_id' });
+    const { error } = await _db.from('user_data').upsert(payload, { onConflict: 'user_id' });
     if (error) console.error('Erro ao salvar:', error);
     _isSyncing = false;
 }
@@ -173,17 +173,7 @@ async function loadUserData() {
     if (!_currentUser) return;
     _isLoaded = false;
 
-    // Limpar localStorage antes de carregar dados do Supabase
-    // Garante que nenhum dado de outro usuário persiste
-    localStorage.removeItem('fa_v');
-    localStorage.removeItem('fa_m');
-    localStorage.removeItem('fa_c');
-    localStorage.removeItem('fa_fat');
-    localStorage.removeItem('fa_e');
-    localStorage.removeItem('fa_cf');
-    localStorage.removeItem('fa_cl');
-
-    const { data, error } = await _supabase
+    const { data, error } = await _db
         .from('user_data')
         .select('*')
         .eq('user_id', _currentUser.id)
@@ -200,14 +190,19 @@ async function loadUserData() {
         Object.assign(CF, data.data_cf || {});
         CF.email = _currentUser.email;
         if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
-        S._origSave('fa_v', V);
-        S._origSave('fa_m', M);
-        S._origSave('fa_c', C);
-        S._origSave('fa_fat', FAT);
-        S._origSave('fa_e', E);
-        S._origSave('fa_cl', CL);
-        S._origSave('fa_cf', CF);
-        updUser();
+        
+        // Salvar localmente sem disparar o sync novamente
+        if (typeof S !== 'undefined' && S._origSave) {
+            S._origSave('fa_v', V);
+            S._origSave('fa_m', M);
+            S._origSave('fa_c', C);
+            S._origSave('fa_fat', FAT);
+            S._origSave('fa_e', E);
+            S._origSave('fa_cl', CL);
+            S._origSave('fa_cf', CF);
+        }
+        
+        if (typeof updUser === 'function') updUser();
         if (typeof rDash === 'function') {
             requestAnimationFrame(() => requestAnimationFrame(() => rDash()));
         }
@@ -220,7 +215,7 @@ async function loadUserData() {
             email: _currentUser.email,
             emp: '', wh: '', insta: '', meta: '0', msgAniv: ''
         };
-        await _supabase.from('user_data').insert({
+        await _db.from('user_data').insert({
             user_id: _currentUser.id,
             data_v: [], data_m: [], data_c: [], data_fat: [],
             data_e: [], data_cl: {}, data_p: [],
@@ -230,28 +225,36 @@ async function loadUserData() {
 }
 
 // Sobrescrever funções de salvamento local para usar Supabase
-const originalSave = S.s.bind(S);
-S._origSave = originalSave;
-S.s = function(key, val) {
-    originalSave(key, val);
-    if (key === 'fa_v') V = val;
-    if (key === 'fa_m') M = val;
-    if (key === 'fa_c') C = val;
-    if (key === 'fa_fat') FAT = val;
-    if (key === 'fa_e') E = val;
-    if (key === 'fa_cl') CL = val;
-    if (key === 'fa_p') P = val;
-    if (key === 'fa_cf') Object.assign(CF, val);
-    saveUserData();
-};
+function setupSync() {
+    if (typeof S === 'undefined') {
+        setTimeout(setupSync, 100);
+        return;
+    }
+    
+    const originalSave = S.s.bind(S);
+    S._origSave = originalSave;
+    S.s = function(key, val) {
+        originalSave(key, val);
+        if (key === 'fa_v') V = val;
+        if (key === 'fa_m') M = val;
+        if (key === 'fa_c') C = val;
+        if (key === 'fa_fat') FAT = val;
+        if (key === 'fa_e') E = val;
+        if (key === 'fa_cl') CL = val;
+        if (key === 'fa_p') P = val;
+        if (key === 'fa_cf') Object.assign(CF, val);
+        saveUserData();
+    };
 
-const originalSaveObj = S.so.bind(S);
-S.so = function(key, val) {
-    originalSaveObj(key, val);
-    if (key === 'fa_cf') Object.assign(CF, val);
-    if (key === 'fa_cl') CL = val;
-    saveUserData();
-};
+    const originalSaveObj = S.so.bind(S);
+    S.so = function(key, val) {
+        originalSaveObj(key, val);
+        if (key === 'fa_cf') Object.assign(CF, val);
+        if (key === 'fa_cl') CL = val;
+        saveUserData();
+    };
+}
+setupSync();
 
 // Painel ADM (Apenas para o dono)
 async function checkAdmin() {
@@ -273,7 +276,7 @@ async function checkAdmin() {
     } else {
         // Verificar se o usuário tem uma assinatura ativa
         try {
-            const { data, error } = await _supabase
+            const { data, error } = await _db
                 .from('subscriptions')
                 .select('status, expires_at')
                 .eq('email', _currentUser.email)
