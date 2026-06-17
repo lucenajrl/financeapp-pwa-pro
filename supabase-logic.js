@@ -65,7 +65,7 @@ function showApp() {
     updUser();
     setTimeout(() => { checkAdmin(); if(typeof checkAdminUI==='function') checkAdminUI(); }, 200);
     setTimeout(() => { checkAdmin(); if(typeof checkAdminUI==='function') checkAdminUI(); }, 800);
-    initTrialTimer();
+    // initTrialTimer é chamado pelo checkAdmin após verificar assinatura
     go('dashboard');
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -286,13 +286,24 @@ async function checkAdmin() {
 
             if (data) {
                 if (data.status === 'blocked') {
+                    // Bloqueado — mostrar tela de pagamento imediatamente
                     showPaymentScreen();
+                    return;
                 } else if (data.expires_at && new Date(data.expires_at) < new Date()) {
+                    // Assinatura vencida — mostrar tela de pagamento
                     showPaymentScreen();
+                    return;
+                } else if (data.status === 'active') {
+                    // Assinatura ativa — acesso liberado, sem trial
+                    if (adminBtn) adminBtn.style.display = 'none';
+                    return;
                 }
             }
+            // Sem assinatura ou dados não encontrados — iniciar trial
+            initTrialTimer();
         } catch (e) {
-            console.error('Erro ao verificar assinatura:', e);
+            // Erro ao verificar — iniciar trial por segurança
+            initTrialTimer();
         }
         
         if (adminBtn) adminBtn.style.display = 'none';
@@ -335,6 +346,7 @@ function initTrialTimer() {
 
 function checkTrialExpiration() {
     if (!_currentUser || _currentUser.email === ADMIN_EMAIL) return;
+    if (document.getElementById('paymentScreen')) return; // já exibindo
     
     const elapsedTime = Date.now() - _trialStartTime;
     const remainingTime = TRIAL_DURATION_MS - elapsedTime;
