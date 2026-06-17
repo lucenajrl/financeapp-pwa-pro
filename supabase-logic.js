@@ -156,9 +156,9 @@ async function saveUserData() {
     _isSyncing = true;
     const payload = {
         user_id: _currentUser.id,
-        vendas: V, movimentacoes: M, cartoes: C,
-        faturas: FAT, estoque: E, clientes_dados: CL,
-        produtos: P, config: CF,
+        data_v: V, data_m: M, data_c: C,
+        data_fat: FAT, data_e: E, data_cl: CL,
+        data_cf: CF,
         updated_at: new Date().toISOString()
     };
     const { error } = await _supabase.from('user_data').upsert(payload, { onConflict: 'user_id' });
@@ -187,14 +187,14 @@ async function loadUserData() {
         .single();
 
     if (data) {
-        V = data.vendas || [];
-        M = data.movimentacoes || [];
-        C = data.cartoes || [];
-        FAT = data.faturas || [];
-        E = data.estoque || [];
-        CL = data.clientes_dados || {};
-        P = data.produtos || [];
-        Object.assign(CF, data.config || {});
+        V = data.data_v || [];
+        M = data.data_m || [];
+        C = data.data_c || [];
+        FAT = data.data_fat || [];
+        E = data.data_e || [];
+        CL = data.data_cl || {};
+        P = data.data_p || [];
+        Object.assign(CF, data.data_cf || {});
         CF.email = _currentUser.email;
         if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
         // Sincronizar com localStorage
@@ -227,9 +227,9 @@ async function loadUserData() {
         };
         await _supabase.from('user_data').insert({
             user_id: _currentUser.id,
-            vendas: [], movimentacoes: [], cartoes: [], faturas: [],
-            estoque: [], clientes_dados: {}, produtos: [],
-            config: CF
+            data_v: [], data_m: [], data_c: [], data_fat: [],
+            data_e: [], data_cl: {}, data_p: [],
+            data_cf: CF
         });
     }
 }
