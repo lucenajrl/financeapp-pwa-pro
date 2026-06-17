@@ -61,7 +61,6 @@ function showApp() {
     document.getElementById('authScreen').classList.add('hide');
     CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
     CF.email = _currentUser.email;
-    S.so('fa_cf', CF);
     updUser();
     setTimeout(() => { checkAdmin(); if(typeof checkAdminUI==='function') checkAdminUI(); }, 200);
     setTimeout(() => { checkAdmin(); if(typeof checkAdminUI==='function') checkAdminUI(); }, 800);
@@ -156,8 +155,12 @@ async function saveUserData() {
     _isSyncing = true;
     const payload = {
         user_id: _currentUser.id,
-        data_v: V, data_m: M, data_c: C,
-        data_fat: FAT, data_e: E, data_cl: CL,
+        data_v: V,
+        data_m: M,
+        data_c: C,
+        data_fat: FAT,
+        data_e: E,
+        data_cl: CL,
         data_cf: CF,
         updated_at: new Date().toISOString()
     };
@@ -197,7 +200,6 @@ async function loadUserData() {
         Object.assign(CF, data.data_cf || {});
         CF.email = _currentUser.email;
         if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
-        // Sincronizar com localStorage
         S._origSave('fa_v', V);
         S._origSave('fa_m', M);
         S._origSave('fa_c', C);
@@ -206,24 +208,17 @@ async function loadUserData() {
         S._origSave('fa_cl', CL);
         S._origSave('fa_cf', CF);
         updUser();
-        // Re-render após todos os dados carregarem (garante card estoque baixo)
         if (typeof rDash === 'function') {
             requestAnimationFrame(() => requestAnimationFrame(() => rDash()));
         }
         _isLoaded = true;
-        toast('Dados sincronizados com a nuvem! ☁️');
     } else {
         _isLoaded = true;
-        // Novo usuário — tudo zerado (Garantindo campos vazios para isolamento total)
         V = []; M = []; C = []; FAT = []; E = []; P = []; CL = {};
         CF = {
             nome: _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0],
             email: _currentUser.email,
-            emp: '',
-            wh: '',
-            insta: '',
-            meta: '0',
-            msgAniv: ''
+            emp: '', wh: '', insta: '', meta: '0', msgAniv: ''
         };
         await _supabase.from('user_data').insert({
             user_id: _currentUser.id,
