@@ -151,7 +151,11 @@ async function authSair() {
 
 // Sincronização de Dados
 async function saveUserData() {
-    if (!_currentUser || _isSyncing || !_isLoaded) return;
+    console.log('[Supabase] Tentando salvar dados...', { user: _currentUser?.email, isSyncing: _isSyncing, isLoaded: _isLoaded });
+    if (!_currentUser || _isSyncing || !_isLoaded) {
+        console.warn('[Supabase] Salvamento cancelado: Usuário não logado ou sincronização em andamento.');
+        return;
+    }
     _isSyncing = true;
     const payload = {
         user_id: _currentUser.id,
@@ -164,8 +168,24 @@ async function saveUserData() {
         data_cf: CF,
         updated_at: new Date().toISOString()
     };
+    
+    // Tentar salvar em ambos os formatos de coluna para garantir compatibilidade
+    payload.vendas = V;
+    payload.movimentacoes = M;
+    payload.cartoes = C;
+    payload.faturas = FAT;
+    payload.estoque = E;
+    payload.clientes_dados = CL;
+    payload.config = CF;
+
+    console.log('[Supabase] Enviando payload:', payload);
     const { error } = await _db.from('user_data').upsert(payload, { onConflict: 'user_id' });
-    if (error) console.error('Erro ao salvar:', error);
+    
+    if (error) {
+        console.error('[Supabase] Erro crítico ao salvar:', error);
+    } else {
+        console.log('[Supabase] Dados salvos com sucesso na nuvem!');
+    }
     _isSyncing = false;
 }
 
@@ -226,14 +246,20 @@ async function loadUserData() {
 
 // Sobrescrever funções de salvamento local para usar Supabase
 function setupSync() {
-    if (typeof S === 'undefined') {
+    console.log('[Supabase] Configurando interceptação de salvamento...');
+    if (typeof S === 'undefined' || !S.s) {
+        console.log('[Supabase] Objeto S não encontrado, tentando novamente em 100ms...');
         setTimeout(setupSync, 100);
         return;
     }
     
+    if (S._syncActive) return; // Evitar duplicidade
+    S._syncActive = true;
+
     const originalSave = S.s.bind(S);
     S._origSave = originalSave;
     S.s = function(key, val) {
+        console.log(`[Supabase] Interceptado S.s('${key}')`);
         originalSave(key, val);
         if (key === 'fa_v') V = val;
         if (key === 'fa_m') M = val;
@@ -248,13 +274,18 @@ function setupSync() {
 
     const originalSaveObj = S.so.bind(S);
     S.so = function(key, val) {
+        console.log(`[Supabase] Interceptado S.so('${key}')`);
         originalSaveObj(key, val);
         if (key === 'fa_cf') Object.assign(CF, val);
         if (key === 'fa_cl') CL = val;
         saveUserData();
     };
+    console.log('[Supabase] Interceptação ativada com sucesso!');
 }
+
+// Iniciar interceptação imediatamente e também no DOMContentLoaded
 setupSync();
+document.addEventListener('DOMContentLoaded', setupSync);
 
 // Painel ADM (Apenas para o dono)
 async function checkAdmin() {
