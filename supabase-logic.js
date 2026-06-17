@@ -190,102 +190,20 @@ async function saveUserData() {
 }
 
 async function loadUserData() {
-    if (!_currentUser) return;
-    _isLoaded = false;
-
-    const { data, error } = await _db
-        .from('user_data')
-        .select('*')
-        .eq('user_id', _currentUser.id)
-        .single();
-
-    if (data) {
-        V = data.data_v || [];
-        M = data.data_m || [];
-        C = data.data_c || [];
-        FAT = data.data_fat || [];
-        E = data.data_e || [];
-        CL = data.data_cl || {};
-        P = data.data_p || [];
-        Object.assign(CF, data.data_cf || {});
-        CF.email = _currentUser.email;
-        if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
-        
-        // Salvar localmente sem disparar o sync novamente
-        if (typeof S !== 'undefined' && S._origSave) {
-            S._origSave('fa_v', V);
-            S._origSave('fa_m', M);
-            S._origSave('fa_c', C);
-            S._origSave('fa_fat', FAT);
-            S._origSave('fa_e', E);
-            S._origSave('fa_cl', CL);
-            S._origSave('fa_cf', CF);
-        }
-        
-        if (typeof updUser === 'function') updUser();
-        if (typeof rDash === 'function') {
-            requestAnimationFrame(() => requestAnimationFrame(() => rDash()));
-        }
-        _isLoaded = true;
-    } else {
-        _isLoaded = true;
-        V = []; M = []; C = []; FAT = []; E = []; P = []; CL = {};
-        CF = {
-            nome: _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0],
-            email: _currentUser.email,
-            emp: '', wh: '', insta: '', meta: '0', msgAniv: ''
-        };
-        await _db.from('user_data').insert({
-            user_id: _currentUser.id,
-            data_v: [], data_m: [], data_c: [], data_fat: [],
-            data_e: [], data_cl: {}, data_p: [],
-            data_cf: CF
-        });
-    }
+    // Carregamento do Supabase desativado para priorizar LocalStorage
+    _isLoaded = true;
+    console.log('[FinanceApp] Dados carregados do LocalStorage.');
+    if (typeof rDash === 'function') rDash();
 }
 
-// Sobrescrever funções de salvamento local para usar Supabase
+// Sincronização com Supabase DESATIVADA a pedido do usuário
+// O app voltará a usar apenas o LocalStorage para máxima estabilidade
 function setupSync() {
-    console.log('[Supabase] Configurando interceptação de salvamento...');
-    if (typeof S === 'undefined' || !S.s) {
-        console.log('[Supabase] Objeto S não encontrado, tentando novamente em 100ms...');
-        setTimeout(setupSync, 100);
-        return;
-    }
-    
-    if (S._syncActive) return; // Evitar duplicidade
-    S._syncActive = true;
-
-    const originalSave = S.s.bind(S);
-    S._origSave = originalSave;
-    S.s = function(key, val) {
-        console.log(`[Supabase] Interceptado S.s('${key}')`);
-        originalSave(key, val);
-        if (key === 'fa_v') V = val;
-        if (key === 'fa_m') M = val;
-        if (key === 'fa_c') C = val;
-        if (key === 'fa_fat') FAT = val;
-        if (key === 'fa_e') E = val;
-        if (key === 'fa_cl') CL = val;
-        if (key === 'fa_p') P = val;
-        if (key === 'fa_cf') Object.assign(CF, val);
-        saveUserData();
-    };
-
-    const originalSaveObj = S.so.bind(S);
-    S.so = function(key, val) {
-        console.log(`[Supabase] Interceptado S.so('${key}')`);
-        originalSaveObj(key, val);
-        if (key === 'fa_cf') Object.assign(CF, val);
-        if (key === 'fa_cl') CL = val;
-        saveUserData();
-    };
-    console.log('[Supabase] Interceptação ativada com sucesso!');
+    console.log('[FinanceApp] Usando salvamento local (LocalStorage) para estabilidade.');
+    // Não sobrescrever S.s e S.so para manter o comportamento original do app
 }
 
-// Iniciar interceptação imediatamente e também no DOMContentLoaded
 setupSync();
-document.addEventListener('DOMContentLoaded', setupSync);
 
 // Painel ADM (Apenas para o dono)
 async function checkAdmin() {
