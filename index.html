@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FinanceApp Pro">
-<link rel="apple-touch-icon" href="/icon-v2-192.png">
-<link rel="icon" type="image/png" href="/favicon-v2.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/supabase-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1182,7 +1182,7 @@ const S={
  so:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
 };
 
-let V=[], M=[], C=[], FAT=[], E=[], P=[], CF={}, CL={};
+let V=S.g('fa_v'), M=S.g('fa_m'), C=S.g('fa_c'), FAT=S.g('fa_fat'), E=S.g('fa_e'), P=S.g('fa_p'), CF=S.go('fa_cf'), CL=S.go('fa_cl')||{};
 
 const localDate=(d=new Date())=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;};
 const today=()=>localDate();
@@ -2044,7 +2044,7 @@ function getLogoSrc(){
 function wpp(id){
  const o=V.find(x=>x.id===id);if(!o)return;
  const san=s=>(s||'').replace(/[`\\]/g,"'");
- const emp=san(CF.emp||'Legado Parfum');
+ const emp=san(CF.emp||'');
  const insta=CF.insta?'@'+san(CF.insta):'';
  const tel=(o.tel||'').replace(/\D/g,'');
  const prods=vProdutos(o);
@@ -3399,7 +3399,7 @@ function loadCfg(){
    emailEl.value=email||CF.email||'';
   }catch(e){}
  }
- document.getElementById('cfEmp').value=CF.emp||'Legado Parfum';
+ document.getElementById('cfEmp').value=CF.emp||'';
  if(CF.wh) document.getElementById('cfWh').value=CF.wh;
  if(CF.mo) document.getElementById('cfMo').value=CF.mo;
  if(CF.insta)document.getElementById('cfInsta').value=CF.insta;
@@ -4211,7 +4211,7 @@ function getAnivConj5Dias(){
 function msgParabens(cl){
  const msg=(CF.msgAniv||'🎂 Feliz Aniversário, {nome}! A {empresa} deseja um dia muito especial pra você! Aproveite e venha nos visitar 🎉')
  .replace(/{nome}/g, cl.nm)
- .replace(/{empresa}/g, CF.emp||'Legado Parfum');
+ .replace(/{empresa}/g, CF.emp||'');
  return encodeURIComponent(msg);
 }
 
@@ -4405,7 +4405,7 @@ function gerarComprovante(id){
  const v=V.find(x=>x.id===id);if(!v)return;
  const san=s=>(s||'').replace(/[`\\]/g,"'");
  const prods=vProdutos(v).map(p=>({...p,nm:san(p.nm)}));
- const emp=san(CF.emp||'Legado Parfum');
+ const emp=san(CF.emp||'');
  const insta=CF.insta?'@'+san(CF.insta):'';
  const totalBruto=vlEf(v);
  const recebido=vRecebido(v);
@@ -4620,7 +4620,7 @@ function salvarEdicaoCliente(){
 function enviarCardAniversario(){
  const cl = window._anivAtual;
  if(!cl) return;
- const emp = CF.emp || 'Legado Parfum';
+ const emp = CF.emp || '';
  const insta= CF.insta ? '@'+CF.insta : '';
  const tel = (cl.tel||'').replace(/\D/g,'');
  const msg = (CF.msgAniv||'🎂 Feliz Aniversário, {nome}! A {empresa} deseja um dia muito especial pra você! Aproveite e venha nos visitar 🎉')
