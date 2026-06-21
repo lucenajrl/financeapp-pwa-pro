@@ -1,8 +1,14 @@
 {
   "version": 2,
-  "builds": [{ "src": "*.html", "use": "@vercel/static" }],
   "routes": [
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/sw.js", "dest": "/sw.js", "headers": { "Service-Worker-Allowed": "/" } }
+    {
+      "src": "/sw.js",
+      "dest": "/sw.js",
+      "headers": { "Service-Worker-Allowed": "/" }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }

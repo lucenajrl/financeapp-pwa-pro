@@ -132,11 +132,14 @@ async function loadUserData() {
             CF.email = _currentUser.email;
             if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
 
-            // Sincronizar com localStorage
+            // Sincronizar com localStorage SEM disparar save no Supabase
             if (typeof S !== 'undefined') {
+                const _wl = _isLoaded;
+                _isLoaded = false; // bloquear temporariamente
                 S.s('fa_v', V); S.s('fa_m', M); S.s('fa_c', C);
                 S.s('fa_fat', FAT); S.s('fa_e', E); S.s('fa_p', P);
                 S.so('fa_cl', CL); S.so('fa_cf', CF);
+                _isLoaded = _wl;
             }
         } else {
             // Novo usuário — dados zerados
@@ -181,30 +184,35 @@ async function saveUserData() {
 }
 
 // Interceptar saves locais para também salvar no Supabase
+// Interceptar S.s e S.so para sincronizar com Supabase
+// Executado imediatamente quando o script carrega
+function _setupSaveInterceptor() {
+    if (typeof S === 'undefined' || !S.s) return;
+    if (S.__intercepted) return; // evitar dupla interceptação
+    S.__intercepted = true;
+    const _origS = S.s.bind(S);
+    S.s = function(key, val) {
+        _origS(key, val); // salvar no localStorage primeiro
+        if (key === 'fa_v') V = val;
+        else if (key === 'fa_m') M = val;
+        else if (key === 'fa_c') C = val;
+        else if (key === 'fa_fat') FAT = val;
+        else if (key === 'fa_e') E = val;
+        else if (key === 'fa_p') P = val;
+        if (_isLoaded && _currentUser) saveUserData(); // depois salvar no Supabase
+    };
+    const _origSo = S.so.bind(S);
+    S.so = function(key, val) {
+        _origSo(key, val);
+        if (key === 'fa_cl') CL = val;
+        else if (key === 'fa_cf') Object.assign(CF, val);
+        if (_isLoaded && _currentUser) saveUserData();
+    };
+}
+
 window.addEventListener('load', () => {
-    setTimeout(() => {
-        if (typeof S !== 'undefined' && S.s) {
-            const _origS = S.s.bind(S);
-            S.s = function(key, val) {
-                _origS(key, val);
-                if (key === 'fa_v') V = val;
-                else if (key === 'fa_m') M = val;
-                else if (key === 'fa_c') C = val;
-                else if (key === 'fa_fat') FAT = val;
-                else if (key === 'fa_e') E = val;
-                else if (key === 'fa_p') P = val;
-                if (_isLoaded) saveUserData();
-            };
-            const _origSo = S.so.bind(S);
-            S.so = function(key, val) {
-                _origSo(key, val);
-                if (key === 'fa_cl') CL = val;
-                else if (key === 'fa_cf') Object.assign(CF, val);
-                if (_isLoaded) saveUserData();
-            };
-        }
-        initAuth();
-    }, 100);
+    _setupSaveInterceptor();
+    initAuth();
 });
 
 // Auto-save a cada 2 minutos
