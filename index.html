@@ -4686,35 +4686,7 @@ function enviarCardAniversario(){
  else toast('Permita pop-ups para gerar o card','err');
 }
 
-const AUTH_KEY = 'fa_auth_users';
-const SESS_KEY = 'fa_auth_session';
-
-function authHash(str){
- let h=0;
- for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}
- return h.toString(36);
-}
-
-function authGetUsers(){
- try{return JSON.parse(localStorage.getItem(AUTH_KEY))||[];}catch{return[];}
-}
-
-function authSaveUsers(users){
- localStorage.setItem(AUTH_KEY, JSON.stringify(users));
-}
-
-function authGetSession(){
- try{return JSON.parse(localStorage.getItem(SESS_KEY))||null;}catch{return null;}
-}
-
-function authSaveSession(user){
- localStorage.setItem(SESS_KEY, JSON.stringify({email:user.email,nome:user.nome}));
-}
-
-function authClearSession(){
- localStorage.removeItem(SESS_KEY);
-}
-
+// ── Auth UI helpers (usados pelo supabase-logic.js) ──
 function authShowErr(msg){
  const el=document.getElementById('authErr');
  if(!el) return;
@@ -4729,60 +4701,7 @@ function authToggle(view){
  document.getElementById('authErr').classList.remove('show');
 }
 
-function authLogin(){
- const email = document.getElementById('loginEmail').value.trim().toLowerCase();
- const pass = document.getElementById('loginPass').value;
- if(!email||!pass){authShowErr('Preencha e-mail e senha.');return;}
- const users = authGetUsers();
- const user = users.find(u=>u.email===email && u.hash===authHash(pass));
- if(!user){authShowErr('E-mail ou senha incorretos.');return;}
- authSaveSession(user);
- authEntrar(user);
-}
-
-function authCadastro(){
- const nome = document.getElementById('cadNome').value.trim();
- const email = document.getElementById('cadEmail').value.trim().toLowerCase();
- const pass = document.getElementById('cadPass').value;
- const pass2 = document.getElementById('cadPass2').value;
- if(!nome||!email||!pass){authShowErr('Preencha todos os campos.');return;}
- if(pass.length<6){authShowErr('Senha deve ter no mínimo 6 caracteres.');return;}
- if(pass!==pass2){authShowErr('As senhas não coincidem.');return;}
- const users = authGetUsers();
- if(users.find(u=>u.email===email)){authShowErr('Este e-mail já está cadastrado.');return;}
- const user={email,nome,hash:authHash(pass)};
- users.push(user);
- authSaveUsers(users);
- authSaveSession(user);
- authEntrar(user);
-}
-
-function authEntrar(user){
- CF.nome = user.nome;
- updUser();
- const screen=document.getElementById('authScreen');
- if(screen) screen.classList.add('hide');
- go('dashboard');
- toast('Bem-vindo, '+user.nome+'! 👋');
- setTimeout(checkAdminUI, 300);
- setTimeout(checkAdminUI, 1200);
-}
-
-function authSair(){
- if(!confirm('Deseja sair da sua conta?'))return;authClearSession();location.reload();
-}
-
-function authInit(){
- const session=authGetSession();
- const screen=document.getElementById('authScreen');
- if(session){
- CF.nome=session.nome;
- updUser();
- if(screen) screen.classList.add('hide');
- } else {
- if(screen) screen.classList.remove('hide');
- }
-}
+// Auth e inicialização delegados ao supabase-logic.js
 
 function abrirDRE(){
  const d=window._dreData;
@@ -4934,9 +4853,8 @@ function confirmCancel(){
 })();
 
 
-
 updUser();
-authInit();
+// authInit() removido — initAuth() do supabase-logic.js cuida da autenticação
 initTheme();
 rDash();
 
