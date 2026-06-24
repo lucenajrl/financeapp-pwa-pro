@@ -1,3 +1,4 @@
+
 // FinanceApp Pro — Supabase Logic
 // Supabase: Auth + Dados na nuvem + Assinaturas + ADM
 // Colunas reais: user_email, data_v, data_m, data_c, data_fat, data_e, data_cf, data_cl, data_p
