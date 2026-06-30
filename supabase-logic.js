@@ -1,3 +1,12 @@
+// FinanceApp Pro — Supabase Logic (MODO DEBUG)
+// Captura QUALQUER erro JS e mostra na tela via alert()
+window.addEventListener('error', function(e) {
+    alert('❌ ERRO JS:\n' + e.message + '\nArquivo: ' + e.filename + '\nLinha: ' + e.lineno);
+});
+window.addEventListener('unhandledrejection', function(e) {
+    alert('❌ ERRO PROMISE:\n' + (e.reason?.message || e.reason));
+});
+
 // FinanceApp Pro — Supabase Logic
 // Supabase: Auth + Dados na nuvem + Assinaturas + ADM
 // Colunas reais: user_email, data_v, data_m, data_c, data_fat, data_e, data_cf, data_cl, data_p
@@ -76,26 +85,41 @@ function showApp() {
 
 // ── FUNÇÕES AUTH ──
 async function authLogin() {
-    const email = document.getElementById('loginEmail')?.value.trim();
-    const password = document.getElementById('loginPass')?.value;
-    if (!email || !password) { authShowErr('Preencha todos os campos.'); return; }
-    const { error } = await _supabase.auth.signInWithPassword({ email, password });
-    if (error) authShowErr('E-mail ou senha incorretos.');
+    try {
+        alert('🔵 authLogin() chamado!');
+        const email = document.getElementById('loginEmail')?.value.trim();
+        const password = document.getElementById('loginPass')?.value;
+        if (!email || !password) { alert('⚠️ Campos vazios!'); authShowErr('Preencha todos os campos.'); return; }
+        if (typeof _supabase === 'undefined') { alert('❌ _supabase UNDEFINED!'); return; }
+        const { error } = await _supabase.auth.signInWithPassword({ email, password });
+        if (error) { alert('❌ Erro login: ' + error.message); authShowErr('E-mail ou senha incorretos.'); }
+        else { alert('✅ Login OK!'); }
+    } catch(err) {
+        alert('❌ EXCEÇÃO authLogin: ' + err.message);
+    }
 }
 
 async function authCadastro() {
-    const nome = document.getElementById('cadNome')?.value.trim();
-    const email = document.getElementById('cadEmail')?.value.trim();
-    const password = document.getElementById('cadPass')?.value;
-    const pass2 = document.getElementById('cadPass2')?.value;
-    if (!nome || !email || !password) { authShowErr('Preencha todos os campos.'); return; }
-    if (password !== pass2) { authShowErr('As senhas não coincidem.'); return; }
-    const { error } = await _supabase.auth.signUp({
-        email, password,
-        options: { data: { nome } }
-    });
-    if (error) authShowErr('Erro: ' + error.message);
-    else { toast('Cadastro realizado! Faça login.'); authToggle('login'); }
+    try {
+        alert('🔵 authCadastro() chamado!');
+        const nome = document.getElementById('cadNome')?.value.trim();
+        const email = document.getElementById('cadEmail')?.value.trim();
+        const password = document.getElementById('cadPass')?.value;
+        const pass2 = document.getElementById('cadPass2')?.value;
+        alert('🔵 Dados: nome=' + nome + ' email=' + email + ' senha.length=' + (password?password.length:0));
+        if (!nome || !email || !password) { alert('⚠️ Campos vazios!'); authShowErr('Preencha todos os campos.'); return; }
+        if (password !== pass2) { alert('⚠️ Senhas diferentes!'); authShowErr('As senhas não coincidem.'); return; }
+        alert('🔵 Chamando _supabase.auth.signUp...');
+        if (typeof _supabase === 'undefined') { alert('❌ _supabase está UNDEFINED!'); return; }
+        const { data, error } = await _supabase.auth.signUp({
+            email, password,
+            options: { data: { nome } }
+        });
+        if (error) { alert('❌ Erro Supabase: ' + error.message); authShowErr('Erro: ' + error.message); }
+        else { alert('✅ Cadastro OK! User: ' + data.user?.email); toast('Cadastro realizado! Faça login.'); authToggle('login'); }
+    } catch(err) {
+        alert('❌ EXCEÇÃO authCadastro: ' + err.message + '\n' + err.stack);
+    }
 }
 
 async function authSair() {
