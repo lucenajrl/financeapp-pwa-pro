@@ -27,7 +27,8 @@ async function initAuth() {
     }
 
     _supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+            if (_currentUser?.id === session.user.id) return; // evitar loop
             _currentUser = session.user;
             await loadUserData();
             showApp();
@@ -90,12 +91,19 @@ async function authCadastro() {
     const pass2 = document.getElementById('cadPass2')?.value;
     if (!nome || !email || !password) { authShowErr('Preencha todos os campos.'); return; }
     if (password !== pass2) { authShowErr('As senhas não coincidem.'); return; }
-    const { error } = await _supabase.auth.signUp({
+    const { data, error } = await _supabase.auth.signUp({
         email, password,
         options: { data: { nome } }
     });
-    if (error) authShowErr('Erro: ' + error.message);
-    else { toast('Cadastro realizado! Faça login.'); authToggle('login'); }
+    if (error) {
+        authShowErr('Erro: ' + error.message);
+    } else if (data.user) {
+        // Cadastro OK — fazer login automático
+        await _supabase.auth.signInWithPassword({ email, password });
+        // onAuthStateChange vai capturar e chamar showApp()
+    } else {
+        toast('Cadastro realizado! Faça login.'); authToggle('login');
+    }
 }
 
 async function authSair() {
