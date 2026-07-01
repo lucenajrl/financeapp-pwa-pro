@@ -1,3 +1,5 @@
 const SUPABASE_URL = 'https://schiikejpdfmewwvaivs.supabase.co';
+
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjaGlpa2VqcGRmbWV3d3ZhaXZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDk3MDgsImV4cCI6MjA5NDEyNTcwOH0.3xpOHAaWW0Cg_OIAQiUzhc37HplUbbuVNCQom4jPDNc';
+
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
