@@ -80,8 +80,14 @@ async function authLogin() {
     const email = document.getElementById('loginEmail')?.value.trim();
     const password = document.getElementById('loginPass')?.value;
     if (!email || !password) { authShowErr('Preencha todos os campos.'); return; }
-    const { error } = await _supabase.auth.signInWithPassword({ email, password });
-    if (error) authShowErr('E-mail ou senha incorretos.');
+    const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+        authShowErr('E-mail ou senha incorretos.');
+    } else if (data.user) {
+        _currentUser = data.user;
+        await loadUserData();
+        showApp();
+    }
 }
 
 async function authCadastro() {
@@ -98,9 +104,15 @@ async function authCadastro() {
     if (error) {
         authShowErr('Erro: ' + error.message);
     } else if (data.user) {
-        // Cadastro OK — fazer login automático
-        await _supabase.auth.signInWithPassword({ email, password });
-        // onAuthStateChange vai capturar e chamar showApp()
+        // Cadastro OK — fazer login automático e abrir app
+        const { data: loginData, error: loginErr } = await _supabase.auth.signInWithPassword({ email, password });
+        if (!loginErr && loginData.user) {
+            _currentUser = loginData.user;
+            await loadUserData();
+            showApp();
+        } else {
+            toast('Cadastro realizado! Faça login.'); authToggle('login');
+        }
     } else {
         toast('Cadastro realizado! Faça login.'); authToggle('login');
     }
@@ -125,10 +137,9 @@ async function loadUserData() {
             .from('user_data')
             .select('*')
             .eq('user_email', _currentUser.email)
-            .single();
+            .maybeSingle();
 
         if (data) {
-            // Carregar dados do Supabase nas variáveis globais
             V = data.data_v || [];
             M = data.data_m || [];
             C = data.data_c || [];
@@ -137,38 +148,45 @@ async function loadUserData() {
             P = data.data_p || [];
             CL = data.data_cl || {};
             Object.assign(CF, data.data_cf || {});
-            CF.email = _currentUser.email;
-            if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
-
-            // Sincronizar com localStorage SEM disparar save no Supabase
-            if (typeof S !== 'undefined') {
-                const _wl = _isLoaded;
-                _isLoaded = false; // bloquear temporariamente
-                S.s('fa_v', V); S.s('fa_m', M); S.s('fa_c', C);
-                S.s('fa_fat', FAT); S.s('fa_e', E); S.s('fa_p', P);
-                S.so('fa_cl', CL); S.so('fa_cf', CF);
-                _isLoaded = _wl;
-            }
         } else {
             // Novo usuário — dados zerados
             V = []; M = []; C = []; FAT = []; E = []; P = []; CL = {};
-            CF = {
-                nome: _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0],
-                email: _currentUser.email, emp: '', wh: '', insta: '', meta: '0'
-            };
-            // Criar registro no Supabase
-            await _supabase.from('user_data').insert({
-                user_email: _currentUser.email,
-                data_v: [], data_m: [], data_c: [], data_fat: [],
-                data_e: [], data_p: [], data_cl: {}, data_cf: CF
-            });
+            CF = {};
+            // Tentar criar registro
+            try {
+                await _supabase.from('user_data').insert({
+                    user_email: _currentUser.email,
+                    data_v: [], data_m: [], data_c: [], data_fat: [],
+                    data_e: [], data_p: [], data_cl: {}, data_cf: {}
+                });
+            } catch(insertErr) {
+                console.error('Erro ao criar user_data:', insertErr);
+            }
         }
     } catch(err) {
-        console.error('Erro ao carregar dados:', err);
-        // Fallback: usar localStorage
-        V = S.g('fa_v'); M = S.g('fa_m'); C = S.g('fa_c');
-        FAT = S.g('fa_fat'); E = S.g('fa_e'); P = S.g('fa_p');
-        CL = S.go('fa_cl') || {}; CF = S.go('fa_cf') || {};
+        console.error('Erro loadUserData:', err);
+        // Fallback localStorage
+        try {
+            if (typeof S !== 'undefined') {
+                V = S.g('fa_v') || []; M = S.g('fa_m') || [];
+                C = S.g('fa_c') || []; FAT = S.g('fa_fat') || [];
+                E = S.g('fa_e') || []; P = S.g('fa_p') || [];
+                CL = S.go('fa_cl') || {}; CF = S.go('fa_cf') || {};
+            }
+        } catch(e) {}
+    }
+
+    // Sempre garantir nome e email
+    CF.email = _currentUser.email;
+    if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
+
+    // Sincronizar com localStorage
+    if (typeof S !== 'undefined') {
+        try {
+            S.s('fa_v', V); S.s('fa_m', M); S.s('fa_c', C);
+            S.s('fa_fat', FAT); S.s('fa_e', E); S.s('fa_p', P);
+            S.so('fa_cl', CL); S.so('fa_cf', CF);
+        } catch(e) {}
     }
 
     _isLoaded = true;
