@@ -4850,6 +4850,17 @@ function confirmCancel(){
  return x;
  });
  if(changed){ S.s('fa_m', M); console.log('Migração: formaPgto normalizado.'); }
+// Expor funções necessárias para o supabase-logic.js
+window.updUser = updUser;
+window.go = go;
+window.toast = toast;
+window.rDash = rDash;
+window.authShowErr = authShowErr;
+window.authToggle = authToggle;
+window.S = S;
+window.V = V; window.M = M; window.C = C;
+window.FAT = FAT; window.E = E; window.P = P;
+window.CL = CL; window.CF = CF;
 })();
 
 

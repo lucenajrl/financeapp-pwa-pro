@@ -53,36 +53,36 @@ function showApp() {
     if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
     if (!CF.email) CF.email = _currentUser.email;
 
-    updUser();
+    if(typeof window.updUser==="function") window.updUser();
 
-    setTimeout(() => { checkAdmin(); if(typeof checkAdminUI==='function') checkAdminUI(); }, 200);
-    setTimeout(() => { checkAdmin(); if(typeof checkAdminUI==='function') checkAdminUI(); }, 1000);
+    setTimeout(() => { checkAdmin(); if(typeof window.checkAdminUI==="function") window.checkAdminUI(); }, 200);
+    setTimeout(() => { checkAdmin(); if(typeof window.checkAdminUI==="function") window.checkAdminUI(); }, 1000);
 
-    go('dashboard');
+    if(typeof window.go==="function") window.go('dashboard');
 
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            if (typeof rDash === 'function') rDash();
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            if(typeof window.rDash==="function") window.rDash();
+            if(typeof lucide!=="undefined") lucide.createIcons();
         });
     });
-    setTimeout(() => { if (typeof rDash === 'function') rDash(); }, 600);
+    setTimeout(() => { if(typeof window.rDash==="function") window.rDash(); }, 600);
 
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden && typeof rDash === 'function') setTimeout(rDash, 200);
     }, { once: true });
 
-    toast('Bem-vindo de volta! 👋');
+    if(typeof window.toast==='function') window.toast('Bem-vindo de volta! 👋');
 }
 
 // ── FUNÇÕES AUTH ──
 async function authLogin() {
     const email = document.getElementById('loginEmail')?.value.trim();
     const password = document.getElementById('loginPass')?.value;
-    if (!email || !password) { authShowErr('Preencha todos os campos.'); return; }
+    if (!email || !password) { if(typeof window.authShowErr==='function') window.authShowErr('Preencha todos os campos.'); return; }
     const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
     if (error) {
-        authShowErr('E-mail ou senha incorretos.');
+        if(typeof window.authShowErr==='function') window.authShowErr('E-mail ou senha incorretos.');
     } else if (data.user) {
         _currentUser = data.user;
         await loadUserData();
@@ -95,14 +95,14 @@ async function authCadastro() {
     const email = document.getElementById('cadEmail')?.value.trim();
     const password = document.getElementById('cadPass')?.value;
     const pass2 = document.getElementById('cadPass2')?.value;
-    if (!nome || !email || !password) { authShowErr('Preencha todos os campos.'); return; }
-    if (password !== pass2) { authShowErr('As senhas não coincidem.'); return; }
+    if (!nome || !email || !password) { if(typeof window.authShowErr==='function') window.authShowErr('Preencha todos os campos.'); return; }
+    if (password !== pass2) { if(typeof window.authShowErr==='function') window.authShowErr('As senhas não coincidem.'); return; }
     const { data, error } = await _supabase.auth.signUp({
         email, password,
         options: { data: { nome } }
     });
     if (error) {
-        authShowErr('Erro: ' + error.message);
+        if(typeof window.authShowErr==='function') window.authShowErr('Erro: '+error.message);
     } else if (data.user) {
         // Cadastro OK — fazer login automático e abrir app
         const { data: loginData, error: loginErr } = await _supabase.auth.signInWithPassword({ email, password });
@@ -111,10 +111,10 @@ async function authCadastro() {
             await loadUserData();
             showApp();
         } else {
-            toast('Cadastro realizado! Faça login.'); authToggle('login');
+            toast('Cadastro realizado! Faça login.'); if(typeof window.authToggle==='function') window.authToggle('login');
         }
     } else {
-        toast('Cadastro realizado! Faça login.'); authToggle('login');
+        toast('Cadastro realizado! Faça login.'); if(typeof window.authToggle==='function') window.authToggle('login');
     }
 }
 
@@ -360,7 +360,7 @@ function admCards() {
         <div class="card"><div class="ch"><div class="cl">Ativos</div><div class="ci ig"><span class="lci"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div></div><div class="cv cg">${ativos}</div><div class="cs up">▲ pagantes</div></div>
         <div class="card"><div class="ch"><div class="cl">Vencidos</div><div class="ci iy"><span class="lci"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span></div></div><div class="cv cy">${vencidos}</div><div class="cs wn">● renovação pendente</div></div>
         <div class="card"><div class="ch"><div class="cl">Bloqueados</div><div class="ci ir"><span class="lci"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></div></div><div class="cv cr">${bloqueados}</div><div class="cs dn">● sem acesso</div></div>`;
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if(typeof lucide!=="undefined") lucide.createIcons();
 }
 function admRender() {
     const search = (document.getElementById('admSearch')?.value || '').toLowerCase();
