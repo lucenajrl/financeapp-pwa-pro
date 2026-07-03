@@ -27,16 +27,12 @@ async function initAuth() {
     }
 
     _supabase.auth.onAuthStateChange(async (event, session) => {
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-            if (_currentUser?.id === session.user.id) return; // evitar loop
-            _currentUser = session.user;
-            await loadUserData();
-            showApp();
-        } else if (event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_OUT') {
             _currentUser = null;
             _isLoaded = false;
             showAuth();
         }
+        // SIGNED_IN é tratado diretamente no authLogin/authCadastro via reload
     });
 }
 
@@ -84,9 +80,8 @@ async function authLogin() {
     if (error) {
         if(typeof window.authShowErr==='function') window.authShowErr('E-mail ou senha incorretos.');
     } else if (data.user) {
-        _currentUser = data.user;
-        await loadUserData();
-        showApp();
+        // Login OK — recarregar para initAuth() detectar a sessão
+        location.reload();
     }
 }
 
@@ -104,17 +99,11 @@ async function authCadastro() {
     if (error) {
         if(typeof window.authShowErr==='function') window.authShowErr('Erro: '+error.message);
     } else if (data.user) {
-        // Cadastro OK — fazer login automático e abrir app
-        const { data: loginData, error: loginErr } = await _supabase.auth.signInWithPassword({ email, password });
-        if (!loginErr && loginData.user) {
-            _currentUser = loginData.user;
-            await loadUserData();
-            showApp();
-        } else {
-            toast('Cadastro realizado! Faça login.'); if(typeof window.authToggle==='function') window.authToggle('login');
-        }
+        // Cadastro OK — fazer login e recarregar página
+        await _supabase.auth.signInWithPassword({ email, password });
+        location.reload();
     } else {
-        toast('Cadastro realizado! Faça login.'); if(typeof window.authToggle==='function') window.authToggle('login');
+        if(typeof window.authToggle==='function') window.authToggle('login');
     }
 }
 
