@@ -16,8 +16,10 @@ async function initAuth() {
         const { data: { session } } = await _supabase.auth.getSession();
         if (session?.user) {
             _currentUser = session.user;
-            await loadUserData();
+            // Abrir app imediatamente com dados do localStorage
             showApp();
+            // Carregar dados do Supabase em background
+            loadUserData().catch(e => console.error('loadUserData bg:', e));
         } else {
             showAuth();
         }
@@ -26,13 +28,12 @@ async function initAuth() {
         showAuth();
     }
 
-    _supabase.auth.onAuthStateChange(async (event, session) => {
+    _supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT') {
             _currentUser = null;
             _isLoaded = false;
             showAuth();
         }
-        // SIGNED_IN é tratado diretamente no authLogin/authCadastro via reload
     });
 }
 
@@ -42,33 +43,28 @@ function showAuth() {
 }
 
 function showApp() {
-    const s = document.getElementById('authScreen');
-    if (s) s.classList.add('hide');
+    // Esconder tela de login de todas as formas possíveis
+    const authEl = document.getElementById('authScreen');
+    if (authEl) {
+        authEl.style.display = 'none';
+        authEl.style.visibility = 'hidden';
+        authEl.classList.add('hide');
+    }
 
-    // Garantir nome e email nas configs
-    if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
-    if (!CF.email) CF.email = _currentUser.email;
+    // Garantir nome e email
+    try {
+        if (_currentUser) {
+            if (!CF.nome) CF.nome = _currentUser.user_metadata?.nome || _currentUser.email.split('@')[0];
+            if (!CF.email) CF.email = _currentUser.email;
+        }
+    } catch(e) {}
 
-    if(typeof window.updUser==="function") window.updUser();
-
-    setTimeout(() => { checkAdmin(); if(typeof window.checkAdminUI==="function") window.checkAdminUI(); }, 200);
-    setTimeout(() => { checkAdmin(); if(typeof window.checkAdminUI==="function") window.checkAdminUI(); }, 1000);
-
-    if(typeof window.go==="function") window.go('dashboard');
-
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            if(typeof window.rDash==="function") window.rDash();
-            if(typeof lucide!=="undefined") lucide.createIcons();
-        });
-    });
-    setTimeout(() => { if(typeof window.rDash==="function") window.rDash(); }, 600);
-
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && typeof rDash === 'function') setTimeout(rDash, 200);
-    }, { once: true });
-
-    if(typeof window.toast==='function') window.toast('Bem-vindo de volta! 👋');
+    // Abrir dashboard com chamadas diretas (sem window.)
+    try { updUser(); } catch(e) {}
+    try { go('dashboard'); } catch(e) {}
+    try { setTimeout(() => { try { rDash(); } catch(e) {} }, 400); } catch(e) {}
+    try { setTimeout(() => { checkAdmin(); }, 600); } catch(e) {}
+    try { toast('Bem-vindo! 👋'); } catch(e) {}
 }
 
 // ── FUNÇÕES AUTH ──
