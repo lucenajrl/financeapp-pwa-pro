@@ -4850,17 +4850,6 @@ function confirmCancel(){
  return x;
  });
  if(changed){ S.s('fa_m', M); console.log('Migração: formaPgto normalizado.'); }
-// Expor funções necessárias para o supabase-logic.js
-window.updUser = updUser;
-window.go = go;
-window.toast = toast;
-window.rDash = rDash;
-window.authShowErr = authShowErr;
-window.authToggle = authToggle;
-window.S = S;
-window.V = V; window.M = M; window.C = C;
-window.FAT = FAT; window.E = E; window.P = P;
-window.CL = CL; window.CF = CF;
 })();
 
 
@@ -5121,6 +5110,104 @@ function salvarDemo() {
 }
 
 </script>
+
+<script>
+// FinanceApp Pro — Auth Supabase INLINE
+(function() {
+  const ADMIN = 'jardsonlucena97@gmail.com';
+  
+  function _openApp(user) {
+    // Esconder auth screen
+    var el = document.getElementById('authScreen');
+    if (el) { el.style.display='none'; el.classList.add('hide'); }
+    // Atualizar CF
+    try { 
+      if (!CF.nome && user) CF.nome = (user.user_metadata && user.user_metadata.nome) || user.email.split('@')[0];
+      if (user) CF.email = user.email;
+    } catch(e){}
+    // Abrir dashboard
+    try { updUser(); } catch(e){}
+    try { go('dashboard'); } catch(e){}
+    try { setTimeout(function(){ try{rDash();}catch(e){} }, 400); } catch(e){}
+    try { setTimeout(function(){ try{checkAdmin();}catch(e){} }, 600); } catch(e){}
+    try { toast('Bem-vindo! 👋'); } catch(e){}
+  }
+
+  function _showAuth() {
+    var el = document.getElementById('authScreen');
+    if (el) { el.style.display=''; el.classList.remove('hide'); }
+  }
+
+  // Botão Entrar
+  window.authLogin = async function() {
+    var email = (document.getElementById('loginEmail')||{}).value || '';
+    var password = (document.getElementById('loginPass')||{}).value || '';
+    email = email.trim();
+    if (!email || !password) { authShowErr('Preencha todos os campos.'); return; }
+    try {
+      var res = await _supabase.auth.signInWithPassword({ email: email, password: password });
+      if (res.error) { authShowErr('E-mail ou senha incorretos.'); return; }
+      _openApp(res.data.user);
+    } catch(e) { authShowErr('Erro de conexão. Tente novamente.'); }
+  };
+
+  // Botão Criar Conta
+  window.authCadastro = async function() {
+    var nome = (document.getElementById('cadNome')||{}).value || '';
+    var email = (document.getElementById('cadEmail')||{}).value || '';
+    var password = (document.getElementById('cadPass')||{}).value || '';
+    var pass2 = (document.getElementById('cadPass2')||{}).value || '';
+    nome = nome.trim(); email = email.trim();
+    if (!nome || !email || !password) { authShowErr('Preencha todos os campos.'); return; }
+    if (password !== pass2) { authShowErr('As senhas não coincidem.'); return; }
+    try {
+      var res = await _supabase.auth.signUp({ email: email, password: password, options: { data: { nome: nome } } });
+      if (res.error) { authShowErr('Erro: ' + res.error.message); return; }
+      // Fazer login automático após cadastro
+      var res2 = await _supabase.auth.signInWithPassword({ email: email, password: password });
+      if (!res2.error && res2.data.user) { _openApp(res2.data.user); }
+      else { authToggle('login'); }
+    } catch(e) { authShowErr('Erro de conexão. Tente novamente.'); }
+  };
+
+  // Botão Sair
+  window.authSair = async function() {
+    if (!confirm('Deseja sair?')) return;
+    await _supabase.auth.signOut();
+    location.reload();
+  };
+
+  // Verificar sessão ao carregar
+  window.addEventListener('load', async function() {
+    try {
+      var res = await _supabase.auth.getSession();
+      if (res.data && res.data.session && res.data.session.user) {
+        _openApp(res.data.session.user);
+      } else {
+        _showAuth();
+      }
+    } catch(e) { _showAuth(); }
+  });
+
+  // Admin
+  window.checkAdmin = function() {
+    try {
+      _supabase.auth.getUser().then(function(r) {
+        var btn = document.getElementById('adminBtn');
+        if (!btn) return;
+        if (r.data && r.data.user && r.data.user.email === ADMIN) {
+          btn.style.display = 'flex';
+        } else {
+          btn.style.display = 'none';
+        }
+      });
+    } catch(e){}
+  };
+
+  // Trial e ADM são carregados separadamente via supabase-logic.js
+})();
+</script>
+
 <script src="/supabase-logic.js"></script>
 </body>
 </html>
