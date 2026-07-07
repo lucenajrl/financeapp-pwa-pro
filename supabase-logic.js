@@ -20,7 +20,7 @@ async function _getUser() {
 
 // ── SAVE NO SUPABASE ──
 async function saveUserData() {
-    if (_isSyncing || !_isLoaded) return;
+    if (_isSyncing) return;
     const user = _currentUser || await _getUser();
     if (!user) return;
     _isSyncing = true;
@@ -46,7 +46,7 @@ async function saveUserData() {
 // ── LOAD DO SUPABASE ──
 async function loadUserData() {
     const user = _currentUser || await _getUser();
-    if (!user) return;
+    if (!user) { _isLoaded = true; return; }
     try {
         const { data } = await _supabase
             .from('user_data')
@@ -104,14 +104,14 @@ function _setupSaveInterceptor() {
         else if (key === 'fa_fat') { try { FAT = val; } catch(e) {} }
         else if (key === 'fa_e') { try { E = val; } catch(e) {} }
         else if (key === 'fa_p') { try { P = val; } catch(e) {} }
-        if (_isLoaded) saveUserData();
+        saveUserData();
     };
     const _origSo = S.so.bind(S);
     S.so = function(key, val) {
         _origSo(key, val);
         if (key === 'fa_cl') { try { CL = val; } catch(e) {} }
         else if (key === 'fa_cf') { try { Object.assign(CF, val); } catch(e) {} }
-        if (_isLoaded) saveUserData();
+        saveUserData();
     };
 }
 
