@@ -11,8 +11,12 @@ let _trialInterval = null;
 // ── PEGAR USUÁRIO ──
 async function _getUser() {
     try {
-        const { data } = await _supabase.auth.getUser();
-        return data && data.user ? data.user : null;
+        // Primeiro tentar getSession (local, sem rede)
+        const { data: sd } = await _supabase.auth.getSession();
+        if (sd && sd.session && sd.session.user) return sd.session.user;
+        // Fallback: getUser (rede)
+        const { data: ud } = await _supabase.auth.getUser();
+        return ud && ud.user ? ud.user : null;
     } catch(e) { return null; }
 }
 
@@ -102,13 +106,22 @@ window.addEventListener('load', async function() {
         
         // Verificar admin/trial
         setTimeout(function() { try { checkAdmin(); } catch(e) {} }, 300);
-        
-        // SAVE PERIÓDICO a cada 10 segundos
-        setInterval(saveUserData, 10000);
-        
-        // Save ao sair da página
-        window.addEventListener('beforeunload', saveUserData);
     }
+
+    // SAVE PERIÓDICO a cada 10 segundos — roda sempre
+    // saveUserData() verifica o usuário internamente
+    setInterval(function() {
+        _getUser().then(function(u) {
+            if (u) { _currentUser = u; saveUserData(); }
+        });
+    }, 10000);
+    
+    // Save ao sair da página
+    window.addEventListener('beforeunload', function() {
+        _getUser().then(function(u) {
+            if (u) { _currentUser = u; saveUserData(); }
+        });
+    });
 });
 
 // ── ADMIN ──
@@ -232,12 +245,14 @@ function admRender() {
         const badge = own ? '<span class="bdg" style="background:rgba(251,191,36,.15);color:#FBBF24">Owner</span>' :
             s.status==='blocked' ? '<span class="bdg bdg-atrasado">Bloqueado</span>' :
             venc ? '<span class="bdg bdg-pendente">Vencido</span>' : '<span class="bdg bdg-pago">Ativo</span>';
+        const em = s.email.replace(/'/g, "\\'");
         const btns = own ? '<span style="font-size:11px;color:var(--t3)">Ilimitado</span>' :
             '<div class="acts">' +
-            (s.status==='active'&&!venc ? '<button class="btn brd sm" onclick="admBlock(''+s.email+'')">Bloquear</button>' :
-                '<button class="btn bgd sm" onclick="admUnblock(''+s.email+'')">Ativar</button>') +
-            '<button class="btn bpd sm" onclick="admRenew(''+s.email+'')">Renovar</button>' +
-            '<button class="btn bh sm" onclick="admDelete(''+s.email+'')">Excluir</button></div>';
+            (s.status==='active'&&!venc
+                ? '<button class="btn brd sm" onclick="admBlock(\'' + em + '\')">Bloquear</button>'
+                : '<button class="btn bgd sm" onclick="admUnblock(\'' + em + '\')">Ativar</button>') +
+            '<button class="btn bpd sm" onclick="admRenew(\'' + em + '\')">Renovar</button>' +
+            '<button class="btn bh sm" onclick="admDelete(\'' + em + '\')">Excluir</button></div>';
         return '<tr><td><strong>'+s.email+'</strong></td><td>'+(s.plan||'—')+'</td><td>'+badge+'</td><td>'+exp+'</td><td>'+cri+'</td><td>'+btns+'</td></tr>';
     }).join('');
 }
