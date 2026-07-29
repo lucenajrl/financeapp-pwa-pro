@@ -21,16 +21,16 @@ async function _getUser() {
 }
 
 // ── SALVAR NO SUPABASE ──
+function _ls(k, def) {
+    try { return JSON.parse(localStorage.getItem(k)) || def; } catch(e) { return def; }
+}
+
 async function saveUserData() {
     if (_isSyncing) return;
     const user = _currentUser || await _getUser();
     if (!user) return;
     _isSyncing = true;
     try {
-        // Ler dados DIRETAMENTE do localStorage (sempre frescos)
-        function _ls(k, def) {
-            try { return JSON.parse(localStorage.getItem(k)) || def; } catch(e) { return def; }
-        }
         await _supabase.from('user_data').upsert({
             user_email: user.email,
             data_v:   _ls('fa_v', []),
@@ -61,8 +61,8 @@ async function loadUserData() {
             .maybeSingle();
 
         if (data) {
-            // Salvar no localStorage para o app ler
-            function _lss(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
+            var origLS = localStorage.__origSetItem || localStorage.setItem.bind(localStorage);
+            function _lss(k, v) { try { origLS(k, JSON.stringify(v)); } catch(e) {} }
             _lss('fa_v',   data.data_v   || []);
             _lss('fa_m',   data.data_m   || []);
             _lss('fa_c',   data.data_c   || []);
@@ -99,28 +99,38 @@ async function loadUserData() {
 window.addEventListener('load', async function() {
     // Pegar usuário logado
     _currentUser = await _getUser();
-    
+
     if (_currentUser) {
-        // Carregar dados do Supabase
         await loadUserData();
-        
-        // Verificar admin/trial
         setTimeout(function() { try { checkAdmin(); } catch(e) {} }, 300);
     }
 
-    // SAVE PERIÓDICO a cada 10 segundos — roda sempre
-    // saveUserData() verifica o usuário internamente
+    // Interceptar localStorage.setItem para save IMEDIATO no Supabase
+    var _origSetItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function(key, value) {
+        _origSetItem(key, value);
+        // Salvar no Supabase sempre que dados do app mudarem
+        if (key && key.indexOf('fa_') === 0 && key !== 'fa_auth_session' && key !== 'fa_auth_users') {
+            _getUser().then(function(u) {
+                if (u) { _currentUser = u; saveUserData(); }
+            });
+        }
+    };
+
+    // Save periódico a cada 30s como backup
     setInterval(function() {
         _getUser().then(function(u) {
             if (u) { _currentUser = u; saveUserData(); }
         });
-    }, 10000);
-    
+    }, 30000);
+
     // Save ao sair da página
-    window.addEventListener('beforeunload', function() {
-        _getUser().then(function(u) {
-            if (u) { _currentUser = u; saveUserData(); }
-        });
+    window.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            _getUser().then(function(u) {
+                if (u) { _currentUser = u; saveUserData(); }
+            });
+        }
     });
 });
 
