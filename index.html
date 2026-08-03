@@ -5120,6 +5120,10 @@ function salvarDemo() {
     // Esconder auth screen
     var el = document.getElementById('authScreen');
     if (el) { el.style.display='none'; el.classList.add('hide'); }
+    // Salvar sessão no localStorage para checkAdminUI() ler
+    if (user && user.email) {
+        try { localStorage.setItem('fa_auth_session', JSON.stringify({email: user.email, nome: (user.user_metadata && user.user_metadata.nome)||user.email.split('@')[0]})); } catch(e) {}
+    }
     // Atualizar CF
     try { 
       if (!CF.nome && user) CF.nome = (user.user_metadata && user.user_metadata.nome) || user.email.split('@')[0];
@@ -5129,7 +5133,9 @@ function salvarDemo() {
     try { updUser(); } catch(e){}
     try { go('dashboard'); } catch(e){}
     try { setTimeout(function(){ try{rDash();}catch(e){} }, 400); } catch(e){}
-    try { setTimeout(function(){ try{checkAdmin();}catch(e){} }, 600); } catch(e){}
+    try { setTimeout(function(){ try{checkAdminUI();}catch(e){} }, 100); } catch(e){}
+    try { setTimeout(function(){ try{checkAdminUI();}catch(e){} }, 600); } catch(e){}
+    try { setTimeout(function(){ try{checkAdmin();}catch(e){} }, 800); } catch(e){}
     try { toast('Bem-vindo! 👋'); } catch(e){}
   }
 
